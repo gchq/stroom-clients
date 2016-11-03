@@ -1,0 +1,36 @@
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+group 'stroom.clients'
+version '1.0-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+task sourceJar(type: Jar){
+    from sourceSets.main.allJava
+    classifier 'sources'
+}
+
+dependencies {
+    compile 'commons-codec:commons-codec:1.10'
+    compile 'org.slf4j:slf4j-api:1.7.21'
+
+    testCompile 'junit:junit:4.12'
+}
+
+publishing {
+    publications {
+        ruleService(MavenPublication) {
+            groupId 'stroom.clients'
+            artifactId 'stroom-java-client'
+            version '1.0-SNAPSHOT'
+            from components.java
+            artifact sourceJar
+        }
+    }
+}
