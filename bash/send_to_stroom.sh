@@ -79,6 +79,14 @@ send_files() {
     echo -e "${GREEN}Info:${NC} Will sleep for ${SLEEP}s to help balance network traffic"
     sleep ${SLEEP}
 
+    echo "${FILE_REGEX}"
+
+    # These lines are handy for debugging in the container
+    #echo "Matched files:"
+    #find "${LOG_DIR}" -regextype posix-egrep -regex "${FILE_REGEX}"
+    #echo "All files:"
+    #find "${LOG_DIR}"
+
     while IFS= read -r -d '' file
     do
         send_file "$file"
