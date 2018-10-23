@@ -2,15 +2,15 @@
 
 # Created by argbash-init v2.6.1
 # ARG_OPTIONAL_BOOLEAN([secure],[s],[Check for valid certificates if running over HTTPS],[off])
-# ARG_OPTIONAL_BOOLEAN([delete_after_sending],[d],[Delete log files after sending them],[off])
+# ARG_OPTIONAL_BOOLEAN([delete-after-sending],[d],[Delete log files after sending them],[off])
 # ARG_OPTIONAL_BOOLEAN([pretty],[p],[Use colours in the output, it is recomended to disable this when sending the results to a log file],[on])
-# ARG_OPTIONAL_SINGLE([file_regex],[r],[The regex pattern used to match files that will be sent. E.g. '\./.*-[0-9]{4}-[0-9]{2}-[0-9]{2}.*.log'. Regex is posix-egrep syntax. If not set, all files in the directory will be sent.],["\./.*\.log"])
-# ARG_OPTIONAL_SINGLE([max_sleep],[m],[Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time)],[0])
-# ARG_POSITIONAL_SINGLE([log_dir],[Directory to look for log files],[])
+# ARG_OPTIONAL_SINGLE([file-regex],[r],[The regex pattern used to match files that will be sent. E.g. '\./.*-[0-9]{4}-[0-9]{2}-[0-9]{2}.*.log'. Regex is posix-egrep syntax. If not set, all files in the directory will be sent.],["\./.*\.log"])
+# ARG_OPTIONAL_SINGLE([max-sleep],[m],[Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time)],[0])
+# ARG_POSITIONAL_SINGLE([log-dir],[Directory to look for log files],[])
 # ARG_POSITIONAL_SINGLE([feed],[ Your feed name given to you],[])
 # ARG_POSITIONAL_SINGLE([system],[Your system name, i.e. what your project/service or capability is known as],[])
 # ARG_POSITIONAL_SINGLE([environment],[Your environment name. Usually SITE_DEPLOYMENT],[])
-# ARG_POSITIONAL_SINGLE([stroom_url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
+# ARG_POSITIONAL_SINGLE([stroom-url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
 # ARG_DEFAULTS_POS()
 # ARG_HELP([This script will send log files to Stroom.])
 # ARG_VERSION([echo $0 v0.1])
@@ -57,17 +57,17 @@ _arg_max_sleep="0"
 print_help()
 {
   printf '%s\n' "This script will send log files to Stroom."
-  printf 'Usage: %s [-s|--(no-)secure] [-d|--(no-)delete_after_sending] [-p|--(no-)pretty] [-r|--file_regex <arg>] [-m|--max_sleep <arg>] [-h|--help] [-v|--version] <log_dir> <feed> <system> <environment> <stroom_url>\n' "$0"
-  printf '\t%s\n' "<log_dir>: Directory to look for log files"
+  printf 'Usage: %s [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
+  printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
   printf '\t%s\n' "<system>: Your system name, i.e. what your project/service or capability is known as"
   printf '\t%s\n' "<environment>: Your environment name. Usually SITE_DEPLOYMENT"
-  printf '\t%s\n' "<stroom_url>: The URL you are sending data to (N.B. This should be the HTTPS URL)"
+  printf '\t%s\n' "<stroom-url>: The URL you are sending data to (N.B. This should be the HTTPS URL)"
   printf '\t%s\n' "-s, --secure, --no-secure: Check for valid certificates if running over HTTPS (off by default)"
-  printf '\t%s\n' "-d, --delete_after_sending, --no-delete_after_sending: Delete log files after sending them (off by default)"
+  printf '\t%s\n' "-d, --delete-after-sending, --no-delete-after-sending: Delete log files after sending them (off by default)"
   printf '\t%s\n' "-p, --pretty, --no-pretty: Use colours in the output, it is recomended to disable this when sending the results to a log file (on by default)"
-  printf '\t%s\n' "-r, --file_regex: The regex pattern used to match files that will be sent. E.g. '\./.*-[0-9]{4}-[0-9]{2}-[0-9]{2}.*.log'. Regex is posix-egrep syntax. If not set, all files in the directory will be sent. (default: '"\./.*\.log"')"
-  printf '\t%s\n' "-m, --max_sleep: Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time) (default: '0')"
+  printf '\t%s\n' "-r, --file-regex: The regex pattern used to match files that will be sent. E.g. '\./.*-[0-9]{4}-[0-9]{2}-[0-9]{2}.*.log'. Regex is posix-egrep syntax. If not set, all files in the directory will be sent. (default: '"\./.*\.log"')"
+  printf '\t%s\n' "-m, --max-sleep: Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time) (default: '0')"
   printf '\t%s\n' "-h, --help: Prints help"
   printf '\t%s\n' "-v, --version: Prints version"
 }
@@ -92,7 +92,7 @@ parse_commandline()
           begins_with_short_option "$_next" && shift && set -- "-s" "-${_next}" "$@" || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
         fi
         ;;
-      -d|--no-delete_after_sending|--delete_after_sending)
+      -d|--no-delete-after-sending|--delete-after-sending)
         _arg_delete_after_sending="on"
         test "${1:0:5}" = "--no-" && _arg_delete_after_sending="off"
         ;;
@@ -116,24 +116,24 @@ parse_commandline()
           begins_with_short_option "$_next" && shift && set -- "-p" "-${_next}" "$@" || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
         fi
         ;;
-      -r|--file_regex)
+      -r|--file-regex)
         test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
         _arg_file_regex="$2"
         shift
         ;;
-      --file_regex=*)
-        _arg_file_regex="${_key##--file_regex=}"
+      --file-regex=*)
+        _arg_file_regex="${_key##--file-regex=}"
         ;;
       -r*)
         _arg_file_regex="${_key##-r}"
         ;;
-      -m|--max_sleep)
+      -m|--max-sleep)
         test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
         _arg_max_sleep="$2"
         shift
         ;;
-      --max_sleep=*)
-        _arg_max_sleep="${_key##--max_sleep=}"
+      --max-sleep=*)
+        _arg_max_sleep="${_key##--max-sleep=}"
         ;;
       -m*)
         _arg_max_sleep="${_key##-m}"
@@ -167,7 +167,7 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-  local _required_args_string="'log_dir', 'feed', 'system', 'environment' and 'stroom_url'"
+  local _required_args_string="'log-dir', 'feed', 'system', 'environment' and 'stroom-url'"
   test "${_positionals_count}" -ge 5 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 5 (namely: $_required_args_string), but got only ${_positionals_count}." 1
   test "${_positionals_count}" -le 5 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 5 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
 }
