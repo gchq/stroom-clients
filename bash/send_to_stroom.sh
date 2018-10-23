@@ -17,7 +17,8 @@ readonly STROOM_URL=${_arg_stroom_url}
 readonly SECURE=${_arg_secure}
 readonly MAX_SLEEP=${_arg_max_sleep}
 readonly DELETE_AFTER_SENDING=${_arg_delete_after_sending}
-readonly NO_PRETTY=${_arg_no_pretty}
+readonly PRETTY=${_arg_pretty}
+readonly FILE_REGEX=${_arg_file_regex}
 
 ## Configure other constants
 readonly LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
@@ -28,7 +29,7 @@ readonly THIS_PID=$$
 setup_echo_colours() {
     # Exit the script on any error
     set -e
-    if [ "${NO_PRETTY}" = "on" ]; then
+    if [ "${PRETTY}" = "off" ]; then
         RED=''
         GREEN=''
         YELLOW=''
@@ -81,7 +82,7 @@ send_files() {
     while IFS= read -r -d '' file
     do
         send_file "$file"
-    done <   <(find "${LOG_DIR}" -name '*.log' -print0)
+    done <   <(find "${LOG_DIR}" -regextype posix-egrep -regex "${FILE_REGEX}" -print0)
 
     rm "${LOCK_FILE}"
 }
