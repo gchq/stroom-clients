@@ -17,7 +17,8 @@ readonly STROOM_URL=${_arg_stroom_url}
 readonly SECURE=${_arg_secure}
 readonly MAX_SLEEP=${_arg_max_sleep}
 readonly DELETE_AFTER_SENDING=${_arg_delete_after_sending}
-readonly NO_PRETTY=${_arg_no_pretty}
+readonly PRETTY=${_arg_pretty}
+readonly FILE_REGEX=${_arg_file_regex:-.*/.*\.log}
 
 ## Configure other constants
 readonly LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
@@ -28,7 +29,7 @@ readonly THIS_PID=$$
 setup_echo_colours() {
     # Exit the script on any error
     set -e
-    if [ "${NO_PRETTY}" = "on" ]; then
+    if [ "${PRETTY}" = "off" ]; then
         RED=''
         GREEN=''
         YELLOW=''
@@ -78,17 +79,30 @@ send_files() {
     echo -e "${GREEN}Info:${NC} Will sleep for ${SLEEP}s to help balance network traffic"
     sleep ${SLEEP}
 
-    while IFS= read -r -d '' file
-    do
-        send_file "$file"
-    done <   <(find "${LOG_DIR}" -name '*.log' -print0)
+    # These lines are handy for debugging in the container
+    #echo "FILE_REGEX: [${FILE_REGEX}]"
+    #echo "Matched files:"
+    #find "${LOG_DIR}" -regex "${FILE_REGEX}"
+    #echo "All files:"
+    #find "${LOG_DIR}"
+
+    # Loop over all files in the lock directory
+    for file in ${LOG_DIR}/*; do
+        #echo "file: ${file}"
+
+        # Ignore the lock file and check the file matches the pattern
+        if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
+            #echo "matched file: ${file}"
+            send_file "${file}" 
+        fi
+    done
 
     rm "${LOCK_FILE}"
 }
 
 send_file() {
     local -r file=$1
-    echo -e "\n${GREEN}Info:${NC} Processing ${file}"
+    echo -e "\n${GREEN}Info:${NC} Sending ${file} to ${STROOM_URL} with headers [Feed:${FEED}, System:${SYSTEM}, Environment:${ENVIRONMENT}]"
     RESPONSE_HTTP=$(curl ${CURL_OPTS} --write-out "RESPONSE_CODE=%{http_code}" --data-binary @${file} ${STROOM_URL} -H "Feed:${FEED}" -H "System:${SYSTEM}" -H "Environment:${ENVIRONMENT}" 2>&1)
     RESPONSE_LINE=$(echo "${RESPONSE_HTTP}" | head -1)
     RESPONSE_MSG=$(echo "${RESPONSE_HTTP}" | grep -o -e "RESPONSE_CODE=.*$")
