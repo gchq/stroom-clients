@@ -18,7 +18,7 @@ readonly SECURE=${_arg_secure}
 readonly MAX_SLEEP=${_arg_max_sleep}
 readonly DELETE_AFTER_SENDING=${_arg_delete_after_sending}
 readonly PRETTY=${_arg_pretty}
-readonly FILE_REGEX=${_arg_file_regex}
+readonly FILE_REGEX=${_arg_file_regex:-.*/.*\.log}
 
 ## Configure other constants
 readonly LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
@@ -86,10 +86,16 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
-    while IFS= read -r -d '' file
-    do
-        send_file "$file"
-    done <   <(find "${LOG_DIR}" -regex "${FILE_REGEX}" -print0)
+    # Loop over all files in the lock directory
+    for file in ${LOG_DIR}/*; do
+        #echo "file: ${file}"
+
+        # Ignore the lock file and check the file matches the pattern
+        if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
+            #echo "matched file: ${file}"
+            send_file "${file}" 
+        fi
+    done
 
     rm "${LOCK_FILE}"
 }
