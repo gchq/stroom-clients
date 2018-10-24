@@ -82,14 +82,14 @@ send_files() {
     # These lines are handy for debugging in the container
     #echo "FILE_REGEX: [${FILE_REGEX}]"
     #echo "Matched files:"
-    #find "${LOG_DIR}" -regextype posix-egrep -regex "${FILE_REGEX}"
+    #find "${LOG_DIR}" -regex "${FILE_REGEX}"
     #echo "All files:"
     #find "${LOG_DIR}"
 
     while IFS= read -r -d '' file
     do
         send_file "$file"
-    done <   <(find "${LOG_DIR}" -regextype posix-egrep -regex "${FILE_REGEX}" -print0)
+    done <   <(find "${LOG_DIR}" -regex "${FILE_REGEX}" -print0)
 
     rm "${LOCK_FILE}"
 }
