@@ -134,21 +134,6 @@ send_file() {
     local -r file=$1
     echo -e "\n${GREEN}Info:${NC} Sending file ${file}"
 
-        #--verbose \
-        #--output /dev/stdout \
-        #--write-out "RESPONSE_CODE=%{http_code}" \
-    #RESPONSE_CODE=$(curl \
-        #${CURL_OPTS} \
-        #--silent \
-        #--show-error \
-        #--output /dev/stderr \
-        #--write-out "%{http_code}" \
-        #--data-binary @${file} ${STROOM_URL} \
-        #-H "Feed:${FEED}" \
-        #-H "System:${SYSTEM}" \
-        #-H "Environment:${ENVIRONMENT}" \
-        #|| true)
-        ##2>&1 || true)
     RESPONSE_HTTP=$(curl \
         ${CURL_OPTS} \
         --silent \
@@ -162,7 +147,6 @@ send_file() {
 
     #echo -e "RESPONSE_HTTP: [${RESPONSE_HTTP}]"
 
-    #RESPONSE_LINE="$(echo "${RESPONSE_HTTP}" | head -1 | grep -v "RESPONSE_CODE=" || true)"
     RESPONSE_CODE="$(echo "${RESPONSE_HTTP}" | grep -o -e "RESPONSE_CODE=.*$" | cut -f2 -d '=')"
     RESPONSE_MSG="$(echo "${RESPONSE_HTTP}" |  grep -v "RESPONSE_CODE=" || true)"
 
@@ -171,7 +155,6 @@ send_file() {
 
     if [ "${RESPONSE_CODE}" != "200" ]
     then
-        #echo -e "${RED}Error:${NC} Unable to send file ${file}, error was: \n${RESPONSE_HTTP}"
         echo -e "${RED}Error:${NC} Unable to send file ${file}, response code was: ${RESPONSE_CODE}, error was :\n${RESPONSE_MSG}"
     else
         echo -e "${GREEN}Info:${NC} Sent file ${file}, response code was ${RESPONSE_CODE}"
