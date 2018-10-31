@@ -15,6 +15,11 @@ readonly SYSTEM=${_arg_system}
 readonly ENVIRONMENT=${_arg_environment}
 readonly STROOM_URL=${_arg_stroom_url}
 readonly SECURE=${_arg_secure}
+readonly CERT=${_arg_cert}
+readonly CERT_TYPE=${_arg_cert_type}
+readonly KEY=${_arg_key}
+readonly KEY_TYPE=${_arg_key_type}
+readonly CACERT=${_arg_cacert}
 readonly MAX_SLEEP=${_arg_max_sleep}
 readonly DELETE_AFTER_SENDING=${_arg_delete_after_sending}
 readonly PRETTY=${_arg_pretty}
@@ -49,11 +54,34 @@ setup_echo_colours() {
 }
 
 configure_curl() {
-    if [ "${SECURE}" = "false" ]; then
-        CURL_OPTS="-k "
-        echo -e "${YELLOW}Warn:${NC} Running in insecure mode where we do not check SSL certificates. CURL_OPTS=${CURL_OPTS}"
-    else
-        CURL_OPTS=""
+    CURL_OPTS=""
+    if [ "${SECURE}" = "off" ]; then
+        CURL_OPTS="${CURL_OPTS} -k"
+        echo -e "${YELLOW}Warn:${NC} Running in insecure mode where we do not check SSL certificates."
+    fi
+    
+    if [ ! "x${CERT}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} --cert ${CERT}"
+    fi
+
+    if [ ! "x${CERT_TYPE}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} --cert-type ${CERT_TYPE}"
+    fi
+
+    if [ ! "x${KEY}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} --key ${KEY}"
+    fi
+
+    if [ ! "x${KEY_TYPE}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} --key-type ${KEY_TYPE}"
+    fi
+
+    if [ ! "x${CACERT}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} --cacert ${CACERT}"
+    fi
+
+    if [ ! "x${CURL_OPTS}" = "x" ]; then
+        CURL_OPTS="${CURL_OPTS} "
     fi
 }
 
@@ -86,12 +114,14 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
+    echo -e "\n${GREEN}Info:${NC} Using URL [${STROOM_URL}] with headers [Feed:${FEED}, System:${SYSTEM}, Environment:${ENVIRONMENT}] and CURL_OPTS [${CURL_OPTS}]"
+
     # Loop over all files in the lock directory
     for file in ${LOG_DIR}/*; do
         #echo "file: ${file}"
 
-        # Ignore the lock file and check the file matches the pattern
-        if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
+        # Ignore the lock file and check the file matches the pattern and is a regular file
+        if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ -f ${file} ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
             #echo "matched file: ${file}"
             send_file "${file}" 
         fi
@@ -102,14 +132,47 @@ send_files() {
 
 send_file() {
     local -r file=$1
-    echo -e "\n${GREEN}Info:${NC} Sending ${file} to ${STROOM_URL} with headers [Feed:${FEED}, System:${SYSTEM}, Environment:${ENVIRONMENT}]"
-    RESPONSE_HTTP=$(curl ${CURL_OPTS} --write-out "RESPONSE_CODE=%{http_code}" --data-binary @${file} ${STROOM_URL} -H "Feed:${FEED}" -H "System:${SYSTEM}" -H "Environment:${ENVIRONMENT}" 2>&1)
-    RESPONSE_LINE=$(echo "${RESPONSE_HTTP}" | head -1)
-    RESPONSE_MSG=$(echo "${RESPONSE_HTTP}" | grep -o -e "RESPONSE_CODE=.*$")
-    RESPONSE_CODE=$(echo "${RESPONSE_MSG}" | cut -f2 -d '=')
+    echo -e "\n${GREEN}Info:${NC} Sending file ${file}"
+
+        #--verbose \
+        #--output /dev/stdout \
+        #--write-out "RESPONSE_CODE=%{http_code}" \
+    #RESPONSE_CODE=$(curl \
+        #${CURL_OPTS} \
+        #--silent \
+        #--show-error \
+        #--output /dev/stderr \
+        #--write-out "%{http_code}" \
+        #--data-binary @${file} ${STROOM_URL} \
+        #-H "Feed:${FEED}" \
+        #-H "System:${SYSTEM}" \
+        #-H "Environment:${ENVIRONMENT}" \
+        #|| true)
+        ##2>&1 || true)
+    RESPONSE_HTTP=$(curl \
+        ${CURL_OPTS} \
+        --silent \
+        --show-error \
+        --write-out "RESPONSE_CODE=%{http_code}" \
+        --data-binary @${file} ${STROOM_URL} \
+        -H "Feed:${FEED}" \
+        -H "System:${SYSTEM}" \
+        -H "Environment:${ENVIRONMENT}" \
+        2>&1 || true)
+
+    #echo -e "RESPONSE_HTTP: [${RESPONSE_HTTP}]"
+
+    #RESPONSE_LINE="$(echo "${RESPONSE_HTTP}" | head -1 | grep -v "RESPONSE_CODE=" || true)"
+    RESPONSE_CODE="$(echo "${RESPONSE_HTTP}" | grep -o -e "RESPONSE_CODE=.*$" | cut -f2 -d '=')"
+    RESPONSE_MSG="$(echo "${RESPONSE_HTTP}" |  grep -v "RESPONSE_CODE=" || true)"
+
+    #echo "RESPONSE_LINE: [${RESPONSE_LINE}]"
+    #echo "RESPONSE_CODE: [${RESPONSE_CODE}]"
+
     if [ "${RESPONSE_CODE}" != "200" ]
     then
-        echo -e "${RED}Error:${NC} Unable to send file ${file}, error was: \n${RESPONSE_HTTP}"
+        #echo -e "${RED}Error:${NC} Unable to send file ${file}, error was: \n${RESPONSE_HTTP}"
+        echo -e "${RED}Error:${NC} Unable to send file ${file}, response code was: ${RESPONSE_CODE}, error was :\n${RESPONSE_MSG}"
     else
         echo -e "${GREEN}Info:${NC} Sent file ${file}, response code was ${RESPONSE_CODE}"
 

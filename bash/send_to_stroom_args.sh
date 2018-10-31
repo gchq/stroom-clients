@@ -6,6 +6,11 @@
 # ARG_OPTIONAL_BOOLEAN([pretty],[p],[Use colours in the output, it is recomended to disable this when sending the results to a log file],[on])
 # ARG_OPTIONAL_SINGLE([file-regex],[r],[The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\.log'. Regex syntax is that used in bash. If not set, all files in the directory will be sent.],[".*/.*\.log"])
 # ARG_OPTIONAL_SINGLE([max-sleep],[m],[Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time)],[0])
+# ARG_OPTIONAL_SINGLE([key],[],[The client's private key file path. The private key should be in PEM format],[])
+# ARG_OPTIONAL_SINGLE([key-type],[],[The type of the client's private key],[PEM])
+# ARG_OPTIONAL_SINGLE([cert],[],[The client's certificate file path. The certificate should be in PEM format],[])
+# ARG_OPTIONAL_SINGLE([cert-type],[],[The type of the client's certificate],[PEM])
+# ARG_OPTIONAL_SINGLE([cacert],[],[The certificate authority's certificate file path. The certificate must be in PEM format],[])
 # ARG_POSITIONAL_SINGLE([log-dir],[Directory to look for log files],[])
 # ARG_POSITIONAL_SINGLE([feed],[ Your feed name given to you],[])
 # ARG_POSITIONAL_SINGLE([system],[Your system name, i.e. what your project/service or capability is known as],[])
@@ -52,12 +57,17 @@ _arg_delete_after_sending="off"
 _arg_pretty="on"
 _arg_file_regex=".*/.*\.log"
 _arg_max_sleep="0"
+_arg_key=
+_arg_key_type="PEM"
+_arg_cert=
+_arg_cert_type="PEM"
+_arg_cacert=
 
 
 print_help()
 {
   printf '%s\n' "This script will send log files to Stroom."
-  printf 'Usage: %s [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
+  printf 'Usage: %s [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
   printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
   printf '\t%s\n' "<system>: Your system name, i.e. what your project/service or capability is known as"
@@ -68,6 +78,11 @@ print_help()
   printf '\t%s\n' "-p, --pretty, --no-pretty: Use colours in the output, it is recomended to disable this when sending the results to a log file (on by default)"
   printf '\t%s\n' "-r, --file-regex: The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\.log'. Regex syntax is that used in bash. If not set, all files in the directory will be sent. (default: '".*/.*\.log"')"
   printf '\t%s\n' "-m, --max-sleep: Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time) (default: '0')"
+  printf '\t%s\n' "--key: The client's private key file path. The private key should be in PEM format (no default)"
+  printf '\t%s\n' "--key-type: The type of the client's private key (default: 'PEM')"
+  printf '\t%s\n' "--cert: The client's certificate file path. The certificate should be in PEM format (no default)"
+  printf '\t%s\n' "--cert-type: The type of the client's certificate (default: 'PEM')"
+  printf '\t%s\n' "--cacert: The certificate authority's certificate file path. The certificate must be in PEM format (no default)"
   printf '\t%s\n' "-h, --help: Prints help"
   printf '\t%s\n' "-v, --version: Prints version"
 }
@@ -137,6 +152,46 @@ parse_commandline()
         ;;
       -m*)
         _arg_max_sleep="${_key##-m}"
+        ;;
+      --key)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_key="$2"
+        shift
+        ;;
+      --key=*)
+        _arg_key="${_key##--key=}"
+        ;;
+      --key-type)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_key_type="$2"
+        shift
+        ;;
+      --key-type=*)
+        _arg_key_type="${_key##--key-type=}"
+        ;;
+      --cert)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_cert="$2"
+        shift
+        ;;
+      --cert=*)
+        _arg_cert="${_key##--cert=}"
+        ;;
+      --cert-type)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_cert_type="$2"
+        shift
+        ;;
+      --cert-type=*)
+        _arg_cert_type="${_key##--cert-type=}"
+        ;;
+      --cacert)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_cacert="$2"
+        shift
+        ;;
+      --cacert=*)
+        _arg_cacert="${_key##--cacert=}"
         ;;
       -h|--help)
         print_help
