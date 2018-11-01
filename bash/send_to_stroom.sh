@@ -116,7 +116,7 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
-    echo -e "\n${GREEN}Info:${NC} Sending files to [${BLUE}${STROOM_URL}${NC}] with headers"
+    echo -e "\n${GREEN}Info:${NC} Sending files to [${BLUE}${STROOM_URL}${NC}]"
     echo -e "${GREEN}Info:${NC} Setting headers [Feed:${BLUE}${FEED}${NC}, System:${BLUE}${SYSTEM}${NC}, Environment:${BLUE}${ENVIRONMENT}${NC}]"
     echo -e "${GREEN}Info:${NC} Using curl options [${BLUE}${CURL_OPTS}${NC}]"
 
