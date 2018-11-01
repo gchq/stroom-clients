@@ -104,8 +104,10 @@ get_lock() {
 }
 
 send_files() {
-    echo -e "${GREEN}Info:${NC} Will sleep for ${SLEEP}s to help balance network traffic"
-    sleep ${SLEEP}
+    if [ ${MAX_SLEEP} -ne 0 ]; then
+        echo -e "${GREEN}Info:${NC} Will sleep for ${SLEEP}s to help balance network traffic"
+        sleep ${SLEEP}
+    fi
 
     # These lines are handy for debugging in the container
     #echo "FILE_REGEX: [${FILE_REGEX}]"
@@ -114,7 +116,9 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
-    echo -e "\n${GREEN}Info:${NC} Using URL [${STROOM_URL}] with headers [Feed:${FEED}, System:${SYSTEM}, Environment:${ENVIRONMENT}] and CURL_OPTS [${CURL_OPTS}]"
+    echo -e "\n${GREEN}Info:${NC} Sending files to [${BLUE}${STROOM_URL}${NC}] with headers"
+    echo -e "${GREEN}Info:${NC} Setting headers [Feed:${BLUE}${FEED}${NC}, System:${BLUE}${SYSTEM}${NC}, Environment:${BLUE}${ENVIRONMENT}${NC}]"
+    echo -e "${GREEN}Info:${NC} Using curl options [${BLUE}${CURL_OPTS}${NC}]"
 
     # Loop over all files in the lock directory
     for file in ${LOG_DIR}/*; do
@@ -168,8 +172,6 @@ send_file() {
 
 main() {
     setup_echo_colours
-    echo -e "\n${GREEN}Welcome to the send_to_stroom.sh script${NC}"
-    echo -e "This script sends log files to Stroom.\n"
 
     configure_curl
     get_lock
