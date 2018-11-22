@@ -103,11 +103,17 @@ configure_curl() {
     fi
 }
 
+validate_log_dir() {
+    if [ ! -d "${LOG_DIR}" ]; then
+        echo_warn "The supplied log-dir argument [${BLUE}${LOG_DIR}${NC}] does not exist, therefore there is nothing to send. Exiting."
+        exit 0
+    fi
+}
+
 get_lock() {
     if [ -f "${LOCK_FILE}" ]; then
         LOCK_FILE_PID=$(head -n 1 "${LOCK_FILE}")
-        if ps -p "$LOCK_FILE_PID" > /dev/null
-        then
+        if ps -p "$LOCK_FILE_PID" > /dev/null; then
             echo_warn "This script is already running is already running as ${CYAN}${LOCK_FILE_PID}${NC}! Exiting."
             exit 0
         else 
@@ -152,7 +158,7 @@ send_files() {
 
 send_file() {
     local -r file=$1
-    echo_info "Sending file ${file}"
+    echo_info "Sending file ${BLUE}${file}${NC}"
 
     RESPONSE_HTTP=$(curl \
         ${CURL_OPTS} \
@@ -191,7 +197,7 @@ main() {
 
     # Define echo prefixes for consistent log messages
     # INFO=blue, WARN=RED, ERROR=BOLD_RED is consistent with logback colour highlighting
-    readonly BASE_PREFIX="[${YELLOW}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}] "
+    readonly BASE_PREFIX="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')] [${YELLOW}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}] "
     readonly INFO_PREFIX="${BLUE}INFO${NC}   ${BASE_PREFIX}"
     readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
     readonly ERROR_PREFIX="${BOLD_RED}ERROR${NC}  ${BASE_PREFIX}"
@@ -201,6 +207,7 @@ main() {
     #echo_warn "This is an warn test"
     #echo_error "This is an error test"
 
+    validate_log_dir
     configure_curl
     get_lock
     send_files
