@@ -49,23 +49,21 @@ setup_echo_colours() {
     set -e
     if [ "${PRETTY}" = "off" ]; then
         RED=''
+        BOLD_RED=''
         GREEN=''
         YELLOW=''
         BLUE=''
         MAGENTA=''
         CYAN=''
-        LGREY=''
-        DGREY=''
         NC='' # No Color
     else
-        RED='\033[1;31m'
-        GREEN='\033[1;32m'
-        YELLOW='\033[1;33m'
-        BLUE='\033[1;34m'
-        MAGENTA='\033[1;35m'
-        CYAN='\033[1;36m'
-        LGREY='\e[37m'
-        DGREY='\e[90m'
+        RED='\e[0;31m'
+        BOLD_RED='\e[1;31m'
+        GREEN='\e[0;32m'
+        YELLOW='\e[0;33m'
+        BLUE='\e[0;34m'
+        MAGENTA='\e[0;35m'
+        CYAN='\e[0;36m'
         NC='\033[0m' # No Color
     fi
 }
@@ -192,10 +190,11 @@ main() {
     setup_echo_colours
 
     # Define echo prefixes for consistent log messages
-    readonly BASE_PREFIX="[${MAGENTA}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}] "
-    readonly INFO_PREFIX="${GREEN}Info${NC}  ${BASE_PREFIX}"
-    readonly WARN_PREFIX="${YELLOW}Warn${NC}  ${BASE_PREFIX}"
-    readonly ERROR_PREFIX="${RED}Error${NC} ${BASE_PREFIX}"
+    # INFO=blue, WARN=RED, ERROR=BOLD_RED is consistent with logback colour highlighting
+    readonly BASE_PREFIX="[${YELLOW}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}] "
+    readonly INFO_PREFIX="${BLUE}INFO${NC}   ${BASE_PREFIX}"
+    readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
+    readonly ERROR_PREFIX="${BOLD_RED}ERROR${NC}  ${BASE_PREFIX}"
 
     # For debugging all log levels
     #echo_info "This is an info test"
