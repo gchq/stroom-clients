@@ -140,7 +140,7 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
-    echo_info "Sending files to [${BLUE}${STROOM_URL}${NC}], headers [Feed:${BLUE}${FEED}${NC}, System:${BLUE}${SYSTEM}${NC}, Environment:${BLUE}${ENVIRONMENT}${NC}], curl options [${BLUE}${CURL_OPTS}${NC}]"
+    echo_info "Sending files to [${BLUE}${STROOM_URL}${NC}], headers [Feed:${YELLOW}${FEED}${NC}, System:${YELLOW}${SYSTEM}${NC}, Environment:${YELLOW}${ENVIRONMENT}${NC}], curl options [${BLUE}${CURL_OPTS}${NC}]"
 
     # Loop over all files in the lock directory
     for file in ${LOG_DIR}/*; do
