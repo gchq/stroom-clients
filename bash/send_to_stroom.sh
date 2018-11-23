@@ -153,7 +153,7 @@ send_files() {
         fi
     done
 
-    rm "${LOCK_FILE}"
+    rm "${LOCK_FILE}" || (echo_error "Unable to delete lock file ${BLUE}${LOCK_FILE}${NC}" && exit 1)
 }
 
 send_file() {
@@ -181,13 +181,13 @@ send_file() {
 
     if [ "${RESPONSE_CODE}" != "200" ]
     then
-        echo_error "Unable to send file ${BLUE}${file}${NC}, response code was: ${BLUE}${RESPONSE_CODE}${NC}, error was :\n${RESPONSE_MSG}"
+        echo_error "Unable to send file ${BLUE}${file}${NC}, response code was: ${RED}${RESPONSE_CODE}${NC}, error was :\n${RESPONSE_MSG}"
     else
-        echo_info "Sent file ${BLUE}${file}${NC}, response code was ${BLUE}${RESPONSE_CODE}${NC}"
+        echo_info "Sent file ${BLUE}${file}${NC}, response code was ${GREEN}${RESPONSE_CODE}${NC}"
 
         if [ "${DELETE_AFTER_SENDING}" = "on" ]; then
             echo_info "Deleting successfully sent file ${BLUE}${file}${NC}"
-            rm "${file}"
+            rm "${file}" || (echo_error "Unable to delete file ${BLUE}${file}${NC}" && exit 1)
         fi
     fi
 }
@@ -197,6 +197,7 @@ main() {
 
     # Define echo prefixes for consistent log messages
     # INFO=blue, WARN=RED, ERROR=BOLD_RED is consistent with logback colour highlighting
+    # Padding after INFO/WARN/ERROR consistent with our logback log format
     readonly BASE_PREFIX="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')] [${YELLOW}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}] "
     readonly INFO_PREFIX="${BLUE}INFO${NC}   ${BASE_PREFIX}"
     readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
