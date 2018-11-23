@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#
+
 # A script to send log files to stroom
 
 # Arguments managed using argbash. To re-generate install argbash and run:
@@ -24,11 +24,15 @@ readonly MAX_SLEEP=${_arg_max_sleep}
 readonly DELETE_AFTER_SENDING=${_arg_delete_after_sending}
 readonly PRETTY=${_arg_pretty}
 readonly FILE_REGEX=${_arg_file_regex:-.*/.*\.log}
+readonly EXTRA_HEADERS_FILE=${_arg_headers}
 
 # Configure other constants
 readonly LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
 readonly SLEEP=$((RANDOM % (MAX_SLEEP+1)))
 readonly THIS_PID=$$
+readonly HEADER_NAME_FEED="Feed"
+readonly HEADER_NAME_SYSTEM="System"
+readonly HEADER_NAME_ENVIRONMENT="Environment"
 
 
 echo_info() {
@@ -68,45 +72,70 @@ setup_echo_colours() {
     fi
 }
 
-configure_curl() {
-    CURL_OPTS=""
+configure_curl_security() {
+    curl_opts=()
     if [ "${SECURE}" = "off" ]; then
-        CURL_OPTS="${CURL_OPTS} -k"
+        curl_opts+=(-k)
         echo_info "Running in insecure mode where we do not check SSL certificates."
     fi
     
     if [ ! "x${CERT}" = "x" ]; then
-        CURL_OPTS="${CURL_OPTS} --cert ${CERT}"
+        curl_opts+=(--cert "${CERT}")
 
     fi
 
     if [ ! "x${KEY}" = "x" ]; then
-        CURL_OPTS="${CURL_OPTS} --key ${KEY}"
+        curl_opts+=(--key "${KEY}")
 
         if [ ! "x${KEY_TYPE}" = "x" ]; then
-            CURL_OPTS="${CURL_OPTS} --key-type ${KEY_TYPE}"
+            curl_opts+=(--key-type "${KEY_TYPE}")
         fi
     fi
 
     if [ ! "x${CACERT}" = "x" ]; then
-        CURL_OPTS="${CURL_OPTS} --cacert ${CACERT}"
+        curl_opts+=(--cacert "${CACERT}")
     fi
 
     if [ ! "x${CERT}" = "x" ] || [ ! "x${CACERT}" = "x" ] ; then
         if [ ! "x${CERT_TYPE}" = "x" ]; then
-            CURL_OPTS="${CURL_OPTS} --cert-type ${CERT_TYPE}"
+            curl_opts+=(--cert-type "${CERT_TYPE}")
         fi
     fi
+}
 
-    if [ ! "x${CURL_OPTS}" = "x" ]; then
-        CURL_OPTS="${CURL_OPTS} "
+configure_curl_headers() {
+    curl_headers=()
+
+    # These ones are special as we always need them and they will trump
+    # any of the same name in the file
+    curl_headers+=(-H "${HEADER_NAME_FEED}:${FEED}")
+    curl_headers+=(-H "${HEADER_NAME_SYSTEM}:${SYSTEM}")
+    curl_headers+=(-H "${HEADER_NAME_ENVIRONMENT}:${ENVIRONMENT}")
+
+    if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
+        while read line; do
+            if [[ "${line}" =~ ^(${HEADER_NAME_FEED}|${HEADER_NAME_SYSTEM}|${HEADER_NAME_ENVIRONMENT}):.* ]]; then
+                echo_warn "Additional header [${YELLOW}${line}${NC}] in the file ${EXTRA_HEADERS_FILE} is reserved and will be ignored"
+            else
+                curl_headers+=(-H "${line}")
+            fi
+        done < ${EXTRA_HEADERS_FILE}
     fi
 }
 
 validate_log_dir() {
     if [ ! -d "${LOG_DIR}" ]; then
-        echo_warn "The supplied log-dir argument [${BLUE}${LOG_DIR}${NC}] does not exist, therefore there is nothing to send. Exiting."
+        echo_warn "The supplied directory for the '${YELLOW}log-dir${NC}' argument [${BLUE}${LOG_DIR}${NC}] does not exist, therefore there is nothing to send. Exiting."
         exit 0
+    fi
+}
+
+validate_extra_headers_file() {
+    if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
+        if [ ! -f "${EXTRA_HEADERS_FILE}" ]; then
+            echo_error "The supplied file for the '${YELLOW}-h / --headers${NC}' argument [${BLUE}${EXTRA_HEADERS_FILE}${NC}] does not exist. Exiting."
+            exit 1
+        fi
     fi
 }
 
@@ -140,12 +169,36 @@ send_files() {
     #echo "All files:"
     #find "${LOG_DIR}"
 
-    echo_info "Sending files to [${BLUE}${STROOM_URL}${NC}], headers [Feed:${YELLOW}${FEED}${NC}, System:${YELLOW}${SYSTEM}${NC}, Environment:${YELLOW}${ENVIRONMENT}${NC}], curl options [${BLUE}${CURL_OPTS}${NC}]"
+    # Build a string of the headers array
+    local headers_text=""
+    for elm in "${curl_headers[@]}"; do
+        if [[ ! "${elm}" = "-H" ]]; then
+            #local decorated_header=$(echo "${elm}" | sed -e "s/:\(.*\)/:${YELLOW}\1${NC}/")
+            # Capture the two parts
+            header_token=$(echo "${elm}" | sed "s/:.*//")
+            header_value=$(echo "${elm}" | sed "s/^.*://")
+            # Concat this header with the others, adding some colour
+            headers_text="${headers_text}, ${header_token}:${YELLOW}${header_value}${NC}"
+        fi
+    done
+    # Remove any leading comma
+    headers_text="$(echo "${headers_text}" | sed 's/^, //')"
+
+    local curl_opts_text=""
+    for elm in "${curl_opts[@]}"; do
+        if [[ ! "${elm}" = "-H" ]]; then
+            #local decorated_header=$(echo "${elm}" | sed -e "s/:\(.*\)/:${YELLOW}\1${NC}/")
+            # Capture the two parts
+            curl_opts_text="${curl_opts_text} ${elm}"
+        fi
+    done
+    # Remove any leading space
+    curl_opts_text="$(echo "${curl_opts_text}" | sed 's/^ //')"
+
+    echo_info "Sending files to [${BLUE}${STROOM_URL}${NC}], headers [${headers_text}], curl options [${BLUE}${curl_opts_text}${NC}]"
 
     # Loop over all files in the lock directory
     for file in ${LOG_DIR}/*; do
-        #echo "file: ${file}"
-
         # Ignore the lock file and check the file matches the pattern and is a regular file
         if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ -f ${file} ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
             #echo "matched file: ${file}"
@@ -160,15 +213,17 @@ send_file() {
     local -r file=$1
     echo_info "Sending file ${BLUE}${file}${NC}"
 
+    # Construct the curl command. We have to use bash arrays for curl_opts and curl_headers to deal with quotes and spaces
+    # correctly. Curl 7.55.0 can take a single headers file as an arg to save all the messing about parsing the file, but
+    # at the time of writing, I only had 7.47.0.
     RESPONSE_HTTP=$(curl \
-        ${CURL_OPTS} \
+        "${curl_opts[@]}" \
         --silent \
         --show-error \
         --write-out "RESPONSE_CODE=%{http_code}" \
-        --data-binary @${file} ${STROOM_URL} \
-        -H "Feed:${FEED}" \
-        -H "System:${SYSTEM}" \
-        -H "Environment:${ENVIRONMENT}" \
+        --data-binary @${file} \
+        "${curl_headers[@]}" \
+        "${STROOM_URL}" \
         2>&1 || true)
 
     #echo -e "RESPONSE_HTTP: [${RESPONSE_HTTP}]"
@@ -209,7 +264,9 @@ main() {
     #echo_error "This is an error test"
 
     validate_log_dir
-    configure_curl
+    validate_extra_headers_file
+    configure_curl_security
+    configure_curl_headers
     get_lock
     send_files
 }

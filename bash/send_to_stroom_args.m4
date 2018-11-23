@@ -3,6 +3,7 @@
 # m4_ignore(
 echo "This is just a script template, not the script (yet) - pass it to 'argbash' to fix this." >&2
 exit 11  #)Created by argbash-init v2.6.1
+# ARG_OPTIONAL_SINGLE([headers], [h], [File containing additional HTTP headers. In the form 'HeaderName:header value'], )
 # ARG_OPTIONAL_BOOLEAN([secure], [s], [Check for valid certificates if running over HTTPS], off)
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending], [d], [Delete log files after sending them], off)
 # ARG_OPTIONAL_BOOLEAN([pretty], [p], [Use colours in the output, it is recomended to disable this when sending the results to a log file], on)

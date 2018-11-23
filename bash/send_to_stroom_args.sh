@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # Created by argbash-init v2.6.1
+# ARG_OPTIONAL_SINGLE([headers],[h],[File containing additional HTTP headers. In the form 'HeaderName:header value'],[])
 # ARG_OPTIONAL_BOOLEAN([secure],[s],[Check for valid certificates if running over HTTPS],[off])
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending],[d],[Delete log files after sending them],[off])
 # ARG_OPTIONAL_BOOLEAN([pretty],[p],[Use colours in the output, it is recomended to disable this when sending the results to a log file],[on])
@@ -39,7 +40,7 @@ die()
 
 begins_with_short_option()
 {
-  local first_option all_short_options='sdprmhv'
+  local first_option all_short_options='hsdprmhv'
   first_option="${1:0:1}"
   test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -52,6 +53,7 @@ _arg_system=
 _arg_environment=
 _arg_stroom_url=
 # THE DEFAULTS INITIALIZATION - OPTIONALS
+_arg_headers=
 _arg_secure="off"
 _arg_delete_after_sending="off"
 _arg_pretty="on"
@@ -67,12 +69,13 @@ _arg_cacert=
 print_help()
 {
   printf '%s\n' "This script will send log files to Stroom."
-  printf 'Usage: %s [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
+  printf 'Usage: %s [-h|--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
   printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
   printf '\t%s\n' "<system>: Your system name, i.e. what your project/service or capability is known as"
   printf '\t%s\n' "<environment>: Your environment name. Usually SITE_DEPLOYMENT"
   printf '\t%s\n' "<stroom-url>: The URL you are sending data to (N.B. This should be the HTTPS URL)"
+  printf '\t%s\n' "-h, --headers: File containing additional HTTP headers. In the form 'HeaderName:header value' (no default)"
   printf '\t%s\n' "-s, --secure, --no-secure: Check for valid certificates if running over HTTPS (off by default)"
   printf '\t%s\n' "-d, --delete-after-sending, --no-delete-after-sending: Delete log files after sending them (off by default)"
   printf '\t%s\n' "-p, --pretty, --no-pretty: Use colours in the output, it is recomended to disable this when sending the results to a log file (on by default)"
@@ -95,6 +98,17 @@ parse_commandline()
   do
     _key="$1"
     case "$_key" in
+      -h|--headers)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_headers="$2"
+        shift
+        ;;
+      --headers=*)
+        _arg_headers="${_key##--headers=}"
+        ;;
+      -h*)
+        _arg_headers="${_key##-h}"
+        ;;
       -s|--no-secure|--secure)
         _arg_secure="on"
         test "${1:0:5}" = "--no-" && _arg_secure="off"
