@@ -20,8 +20,8 @@
 # ARG_POSITIONAL_SINGLE([environment],[Your environment name. Usually SITE_DEPLOYMENT],[])
 # ARG_POSITIONAL_SINGLE([stroom-url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
 # ARG_DEFAULTS_POS()
-# ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set.])
-# ARG_VERSION([echo $0 v1.8])
+# ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once.])
+# ARG_VERSION([echo $0 v1.8.1])
 # ARGBASH_SET_INDENT([  ])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -72,7 +72,7 @@ _arg_debug="off"
 
 print_help()
 {
-  printf '%s\n' "This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set."
+  printf '%s\n' "This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once."
   printf 'Usage: %s [-h|--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-z|--(no-)compress] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [--(no-)debug] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
   printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
@@ -238,11 +238,11 @@ parse_commandline()
         exit 0
         ;;
       -v|--version)
-        echo $0 v1.8
+        echo $0 v1.8.1
         exit 0
         ;;
       -v*)
-        echo $0 v1.8
+        echo $0 v1.8.1
         exit 0
         ;;
       *)
