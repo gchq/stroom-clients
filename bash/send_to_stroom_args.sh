@@ -5,6 +5,7 @@
 # ARG_OPTIONAL_BOOLEAN([secure],[s],[Check for valid certificates if running over HTTPS],[off])
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending],[d],[Delete log files after sending them],[off])
 # ARG_OPTIONAL_BOOLEAN([pretty],[p],[Use colours in the output, it is recomended to disable this when sending the results to a log file],[on])
+# ARG_OPTIONAL_BOOLEAN([compress],[z],[Compress the data sent to stroom using gzip compression. This will set the required 'Compression:GZIP' header. The source log file will not be changed.],[off])
 # ARG_OPTIONAL_SINGLE([file-regex],[r],[The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\.log'. Regex syntax is that used in bash. If not set, all files in the directory will be sent.],[".*/.*\.log"])
 # ARG_OPTIONAL_SINGLE([max-sleep],[m],[Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time)],[0])
 # ARG_OPTIONAL_SINGLE([key],[],[The client's private key file path. The private key should be in PEM format],[])
@@ -12,14 +13,15 @@
 # ARG_OPTIONAL_SINGLE([cert],[],[The client's certificate file path. The certificate should be in PEM format],[])
 # ARG_OPTIONAL_SINGLE([cert-type],[],[The type of the client's certificate],[PEM])
 # ARG_OPTIONAL_SINGLE([cacert],[],[The certificate authority's certificate file path. The certificate must be in PEM format],[])
+# ARG_OPTIONAL_BOOLEAN([debug],[],[Run with debug logging enabled],[off])
 # ARG_POSITIONAL_SINGLE([log-dir],[Directory to look for log files],[])
 # ARG_POSITIONAL_SINGLE([feed],[ Your feed name given to you],[])
 # ARG_POSITIONAL_SINGLE([system],[Your system name, i.e. what your project/service or capability is known as],[])
 # ARG_POSITIONAL_SINGLE([environment],[Your environment name. Usually SITE_DEPLOYMENT],[])
 # ARG_POSITIONAL_SINGLE([stroom-url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
 # ARG_DEFAULTS_POS()
-# ARG_HELP([This script will send log files to Stroom.])
-# ARG_VERSION([echo $0 v0.1])
+# ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set.])
+# ARG_VERSION([echo $0 v1.8])
 # ARGBASH_SET_INDENT([  ])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -40,7 +42,7 @@ die()
 
 begins_with_short_option()
 {
-  local first_option all_short_options='hsdprmhv'
+  local first_option all_short_options='hsdpzrmhv'
   first_option="${1:0:1}"
   test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -57,6 +59,7 @@ _arg_headers=
 _arg_secure="off"
 _arg_delete_after_sending="off"
 _arg_pretty="on"
+_arg_compress="off"
 _arg_file_regex=".*/.*\.log"
 _arg_max_sleep="0"
 _arg_key=
@@ -64,12 +67,13 @@ _arg_key_type="PEM"
 _arg_cert=
 _arg_cert_type="PEM"
 _arg_cacert=
+_arg_debug="off"
 
 
 print_help()
 {
-  printf '%s\n' "This script will send log files to Stroom."
-  printf 'Usage: %s [-h|--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
+  printf '%s\n' "This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set."
+  printf 'Usage: %s [-h|--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-z|--(no-)compress] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [--(no-)debug] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
   printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
   printf '\t%s\n' "<system>: Your system name, i.e. what your project/service or capability is known as"
@@ -79,6 +83,7 @@ print_help()
   printf '\t%s\n' "-s, --secure, --no-secure: Check for valid certificates if running over HTTPS (off by default)"
   printf '\t%s\n' "-d, --delete-after-sending, --no-delete-after-sending: Delete log files after sending them (off by default)"
   printf '\t%s\n' "-p, --pretty, --no-pretty: Use colours in the output, it is recomended to disable this when sending the results to a log file (on by default)"
+  printf '\t%s\n' "-z, --compress, --no-compress: Compress the data sent to stroom using gzip compression. This will set the required 'Compression:GZIP' header. The source log file will not be changed. (off by default)"
   printf '\t%s\n' "-r, --file-regex: The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\.log'. Regex syntax is that used in bash. If not set, all files in the directory will be sent. (default: '".*/.*\.log"')"
   printf '\t%s\n' "-m, --max-sleep: Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time) (default: '0')"
   printf '\t%s\n' "--key: The client's private key file path. The private key should be in PEM format (no default)"
@@ -86,6 +91,7 @@ print_help()
   printf '\t%s\n' "--cert: The client's certificate file path. The certificate should be in PEM format (no default)"
   printf '\t%s\n' "--cert-type: The type of the client's certificate (default: 'PEM')"
   printf '\t%s\n' "--cacert: The certificate authority's certificate file path. The certificate must be in PEM format (no default)"
+  printf '\t%s\n' "--debug, --no-debug: Run with debug logging enabled (off by default)"
   printf '\t%s\n' "-h, --help: Prints help"
   printf '\t%s\n' "-v, --version: Prints version"
 }
@@ -143,6 +149,18 @@ parse_commandline()
         if test -n "$_next" -a "$_next" != "$_key"
         then
           begins_with_short_option "$_next" && shift && set -- "-p" "-${_next}" "$@" || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+        fi
+        ;;
+      -z|--no-compress|--compress)
+        _arg_compress="on"
+        test "${1:0:5}" = "--no-" && _arg_compress="off"
+        ;;
+      -z*)
+        _arg_compress="on"
+        _next="${_key##-z}"
+        if test -n "$_next" -a "$_next" != "$_key"
+        then
+          begins_with_short_option "$_next" && shift && set -- "-z" "-${_next}" "$@" || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
         fi
         ;;
       -r|--file-regex)
@@ -207,6 +225,10 @@ parse_commandline()
       --cacert=*)
         _arg_cacert="${_key##--cacert=}"
         ;;
+      --no-debug|--debug)
+        _arg_debug="on"
+        test "${1:0:5}" = "--no-" && _arg_debug="off"
+        ;;
       -h|--help)
         print_help
         exit 0
@@ -216,11 +238,11 @@ parse_commandline()
         exit 0
         ;;
       -v|--version)
-        echo $0 v0.1
+        echo $0 v1.8
         exit 0
         ;;
       -v*)
-        echo $0 v0.1
+        echo $0 v1.8
         exit 0
         ;;
       *)
