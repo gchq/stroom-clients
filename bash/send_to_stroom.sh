@@ -321,7 +321,8 @@ send_file() {
 
         RESPONSE_HTTP=$( \
             # We are compressing so pipe output of gzip to curl and get curl to read from stdin
-            gzip --stdout "${file}" | \
+            # gzip's '--stdout' arg is not supported on alpine so use '-c' instead
+            gzip -c "${file}" | \
             curl \
                 "${curl_opts[@]}" \
                 --silent \
