@@ -279,6 +279,7 @@ add_compression_header_if_required() {
         header_value="${COMPRESSION_HEADER_TYPE_GZIP}"
         is_compression_required=false
         is_supported_compressed_file=true
+        add_file_specific_curl_header_arg "${HEADER_TOKEN_CONTENT_ENCODING}" "${CONTENT_ENCODING_HEADER_TYPE_GZIP}"
     elif [[ "${extension}" =~ \.(zip|ZIP)$ ]]; then
         header_value="${COMPRESSION_HEADER_TYPE_ZIP}"
         is_compression_required=false
@@ -288,6 +289,7 @@ add_compression_header_if_required() {
         header_value="${COMPRESSION_HEADER_TYPE_GZIP}"
         is_compression_required=true
         is_supported_compressed_file=false
+        add_file_specific_curl_header_arg "${HEADER_TOKEN_CONTENT_ENCODING}" "${CONTENT_ENCODING_HEADER_TYPE_GZIP}"
     fi
 
     echo_debug "is_compression_required: ${is_compression_required}"

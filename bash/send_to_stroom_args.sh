@@ -21,7 +21,7 @@
 # ARG_POSITIONAL_SINGLE([stroom-url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
 # ARG_DEFAULTS_POS()
 # ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once.])
-# ARG_VERSION([echo $0 v1.8.1])
+# ARG_VERSION([echo $0 v1.9])
 # ARGBASH_SET_INDENT([  ])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -238,11 +238,11 @@ parse_commandline()
         exit 0
         ;;
       -v|--version)
-        echo $0 v1.8.1
+        echo $0 v1.9
         exit 0
         ;;
       -v*)
-        echo $0 v1.8.1
+        echo $0 v1.9
         exit 0
         ;;
       *)
