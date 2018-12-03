@@ -48,9 +48,11 @@ readonly COMPRESSION_HEADER_TYPE_GZIP="GZIP"
 readonly COMPRESSION_HEADER_TYPE_ZIP="ZIP"
 
 # HTTP standard reserved header tokens
-readonly HEADER_TOKEN_CONTENT_ENCODING="content-encoding"
-
-readonly CONTENT_ENCODING_HEADER_TYPE_GZIP="gzip"
+# Content-Encoding conflicts with our Compression header token. If both are
+# set then both stroom and the underlying web server will try to un-compress
+# the data, leading to stroom trying to un-compress already un-compressed data.
+# Therefore if this token is found in the headers file it will be ignored.
+readonly HEADER_TOKEN_CONTENT_ENCODING="Content-Encoding"
 
 is_compression_required=false
 is_supported_compressed_file=false
