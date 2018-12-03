@@ -48,7 +48,7 @@ readonly COMPRESSION_HEADER_TYPE_GZIP="GZIP"
 readonly COMPRESSION_HEADER_TYPE_ZIP="ZIP"
 
 # HTTP standard reserved header tokens
-readonly HEADER_TOKEN_CONTENT_ENCODING="content-encoding"
+readonly HEADER_TOKEN_CONTENT_ENCODING="Content-Encoding"
 
 readonly CONTENT_ENCODING_HEADER_TYPE_GZIP="gzip"
 
