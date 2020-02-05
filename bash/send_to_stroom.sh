@@ -254,16 +254,22 @@ send_files() {
 
     echo_debug "FILE_REGEX: [${FILE_REGEX}]"
 
+    local file_match_count=0
+
     # Loop over all files in the lock directory
     for file in ${LOG_DIR}/*; do
         # Ignore the lock file and check the file matches the pattern and is a regular file
         if [[ ! "x${file}" = "x${LOCK_FILE}" ]] && [[ -f ${file} ]] && [[ "${file}" =~ ${FILE_REGEX} ]]; then
             #echo "matched file: ${file}"
+            file_match_count=$((file_match_count + 1))
             send_file "${file}" 
         else
             echo_debug "Ignoring file ${BLUE}${file}${NC}"
         fi
     done
+
+    echo_info "File path regex [${YELLOW}${FILE_REGEX}${NC}] matched" \
+      "${file_match_count} file(s) in ${BLUE}${LOG_DIR}${NC}"
 
     echo_info "Deleting lock file for ${CYAN}${THIS_PID}${NC}"
     rm "${LOCK_FILE}" || (echo_error "Unable to delete lock file ${BLUE}${LOCK_FILE}${NC}" && exit 1)
