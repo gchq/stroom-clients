@@ -24,7 +24,7 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending], [d], [Delete log files after sending them], off)
 # ARG_OPTIONAL_BOOLEAN([pretty], [p], [Use colours in the output, it is recomended to disable this when sending the results to a log file], on)
 # ARG_OPTIONAL_BOOLEAN([compress], [z], [Compress the data sent to stroom using gzip compression. This will set the required 'Compression:GZIP' header. The source log file will not be changed.], off)
-# ARG_OPTIONAL_SINGLE([file-regex], [r], [The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\.log'. Regex syntax is that used in bash. If not set, all files in the directory will be sent.], ".*/.*\.log")
+# ARG_OPTIONAL_SINGLE([file-regex], [r], [The regex pattern used to match files that will be sent. E.g. '.*/[a-z]+-[0-9]{4}-[0-9]{2}-[0-9]{2}T.*\\.log'. Regex syntax is that used in bash.], ".*/.*\\.log")
 # ARG_OPTIONAL_SINGLE([max-sleep], [m], [Max time allowed to sleep (e.g. to avoid all cron's in the estate sending log files at the same time)], 0)
 # ARG_OPTIONAL_SINGLE([key], , [The client's private key file path. The private key should be in PEM format],)
 # ARG_OPTIONAL_SINGLE([key-type], , [The type of the client's private key], PEM)
