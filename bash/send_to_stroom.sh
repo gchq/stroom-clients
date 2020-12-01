@@ -222,10 +222,45 @@ get_lock() {
   fi
 }
 
-#is_file_empty() {
-#local -r file=$1
+is_file_not_empty() {
+  local -r file="$1"
 
-#}
+  local -r filename="$(basename -- "${file}")"
+  local -r extension="$( \
+    [[ "$filename" = *.* ]] && echo ".${filename##*.}" || echo '')"
+
+  echo_debug "Checking if file is empty for file:" \
+    "[${file}], filename: [${filename}], extension: [${extension}]"
+
+  local is_not_empty=true
+
+  header_value="${COMPRESSION_HEADER_TYPE_GZIP}"
+  if [[ "${extension}" =~ \.(gz|GZ)$ ]] ; then
+    # Gunzup to stdout, get first one bytes then get lenght of that
+    # in bytes
+    if [[ $(gunzip -c "${file}" | head -c1 | wc -c) == "0" ]]; then
+        is_not_empty=false
+    fi
+  elif [[ "${extension}" =~ \.(zip|ZIP)$ ]]; then
+    # And empty zip archive is always exactly 22 bytes so test for this
+    if [[ $(wc -c < "${file}") = "22" ]]; then
+        is_not_empty=false
+    fi
+  else
+    # Not a compressed file so just see if it is non-empty
+    if [[ ! -s "${file}" ]]; then
+        is_not_empty=false
+    fi
+  fi
+
+  if "${is_not_empty}" = true ]]; then
+    echo_debug "Non-empty file: ${file}"
+    return 0
+  else
+    echo_debug "Empty file: ${file}"
+    return 1
+  fi
+}
 
 send_files() {
   if [ "${MAX_SLEEP}" -ne 0 ]; then
@@ -269,7 +304,7 @@ send_files() {
 
     local file_match_count=0
 
-    # Loop over all files in the lock directory
+    # Loop over all files in the log directory
     for file in ${LOG_DIR}/*; do
       # Ignore the lock file and check the file matches the pattern and is a
       # regular file
@@ -277,9 +312,14 @@ send_files() {
         && [[ -f ${file} ]] \
         && [[ "${file}" =~ ${FILE_REGEX} ]]; then
 
-        #echo "matched file: ${file}"
-        file_match_count=$((file_match_count + 1))
-        send_file "${file}" 
+        if is_file_not_empty "${file}"; then
+          #echo "matched file: ${file}"
+          file_match_count=$((file_match_count + 1))
+          send_file "${file}" 
+        else
+          echo_info "Ignoring empty file ${BLUE}${file}${NC}"
+          delete_file_if_enabled "${file}"
+        fi
       else
         echo_debug "Ignoring file ${BLUE}${file}${NC}"
       fi
@@ -334,6 +374,15 @@ dump_header_args_in_debug() {
       "${curl_headers[@]}" \
       "${file_specific_curl_headers[@]}" \
       "${NC}]"
+  fi
+}
+
+delete_file_if_enabled() {
+  local -r file="$1"
+  if [ "${DELETE_AFTER_SENDING}" = "on" ]; then
+    echo_info "Deleting file ${BLUE}${file}${NC}"
+    rm "${file}" \
+      || (echo_error "Unable to delete file ${BLUE}${file}${NC}" && exit 1)
   fi
 }
 
@@ -409,11 +458,7 @@ send_file() {
     echo_info "Sent file ${BLUE}${file}${NC}, response code" \
       "was ${GREEN}${RESPONSE_CODE}${NC}"
 
-    if [ "${DELETE_AFTER_SENDING}" = "on" ]; then
-      echo_info "Deleting successfully sent file ${BLUE}${file}${NC}"
-      rm "${file}" \
-        || (echo_error "Unable to delete file ${BLUE}${file}${NC}" && exit 1)
-    fi
+    delete_file_if_enabled "${file}"
   fi
 }
 
@@ -424,12 +469,15 @@ main() {
   # INFO=blue, WARN=RED, ERROR=BOLD_RED is consistent with logback colour highlighting
   # however they use defaul colour for other levels, here we use DEBUG=MAGENTA
   # Padding after INFO/WARN/ERROR consistent with our logback log format
-  readonly BASE_PREFIX="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')]" \
-    "[${YELLOW}${FEED}${NC}] [${CYAN}${THIS_PID}${NC}]"
-        readonly DEBUG_PREFIX="${MAGENTA}DEBUG${NC}  ${BASE_PREFIX}"
-        readonly INFO_PREFIX="${BLUE}INFO${NC}   ${BASE_PREFIX}"
-        readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
-        readonly ERROR_PREFIX="${BOLD_RED}ERROR${NC}  ${BASE_PREFIX}"
+
+  readonly DATE_PART="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')]"
+  readonly FEED_PART="[${YELLOW}${FEED}${NC}]"
+  readonly PID_PART="[${CYAN}${THIS_PID}${NC}]"
+  readonly BASE_PREFIX="${DATE_PART} ${FEED_PART} ${PID_PART}"
+  readonly DEBUG_PREFIX="${MAGENTA}DEBUG${NC}  ${BASE_PREFIX}"
+  readonly INFO_PREFIX="${BLUE}INFO${NC}   ${BASE_PREFIX}"
+  readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
+  readonly ERROR_PREFIX="${BOLD_RED}ERROR${NC}  ${BASE_PREFIX}"
 
   if [ "${DEBUG}" = "on" ]; then
     # For debugging all log levels
