@@ -29,9 +29,9 @@ source "${DIR}/send_to_stroom_args.sh"
   # Create references to the args
   readonly LOG_DIR=${_arg_log_dir}
   readonly FEED=${_arg_feed}
-  readonly SYSTEM=${_arg_system}
-  readonly ENVIRONMENT=${_arg_environment}
   readonly STROOM_URL=${_arg_stroom_url}
+  # Each -H arg is added into an array
+  readonly HEADERS_ARR=( "${_arg_header[@]}" )
   readonly SECURE=${_arg_secure}
   readonly CERT=${_arg_cert}
   readonly CERT_TYPE=${_arg_cert_type}
@@ -55,8 +55,6 @@ readonly THIS_PID=$$
 # Stroom reserved header tokens
 # see https://gchq.github.io/stroom-docs/user-guide/sending-data/header-arguments.html
 readonly HEADER_TOKEN_FEED="Feed"
-readonly HEADER_TOKEN_SYSTEM="System"
-readonly HEADER_TOKEN_ENVIRONMENT="Environment"
 readonly HEADER_TOKEN_COMPRESSION="Compression"
 
 # Valid values for the Compression header token
@@ -117,6 +115,28 @@ setup_echo_colours() {
   fi
 }
 
+# Returns 0 if the key portion of header $1 is a key in the array of 
+# elements passed as subsequent args
+# e.g. 
+# arr=( "key1:val1" "key2:val1" "key3:val1" )
+# header_in "key2" "${arr[@]}" # returns 0
+header_in () {
+  local header 
+  local header_key
+  # Get the first arg, the match, then remove it from the arg list
+  local match="$1"
+  # extract the key from key:value
+  local match_key="${match%:*}"
+  shift
+  # implicitly iterate over the arg list
+  for header; do 
+    # extract the key from key:value
+    header_key="${header%:*}"
+    [[ "${header_key}" == "${match_key}" ]] && return 0
+  done
+  return 1
+}
+
 configure_curl_security() {
   curl_opts=()
   if [ "${SECURE}" = "off" ]; then
@@ -159,7 +179,7 @@ add_curl_header_arg() {
     header_line="$1"
   fi
 
-  echo_debug "Adding header [${header_line}]"
+  echo_debug "Adding header [${YELLOW}${header_line}${NC}]"
   curl_headers+=(-H "${header_line}")
 }
 
@@ -181,24 +201,30 @@ add_file_specific_curl_header_arg() {
 configure_curl_headers() {
   curl_headers=()
 
-    # These ones are special as we always need them and they will trump
-    # any of the same name in the file
-    add_curl_header_arg "${HEADER_TOKEN_FEED}" "${FEED}"
-    add_curl_header_arg "${HEADER_TOKEN_SYSTEM}" "${SYSTEM}"
-    add_curl_header_arg "${HEADER_TOKEN_ENVIRONMENT}" "${ENVIRONMENT}"
+  # These ones are special as we always need them and they will trump
+  # any of the same name in the file
+  add_curl_header_arg "${HEADER_TOKEN_FEED}" "${FEED}"
 
-    if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
-      while read line; do
-        if [[ "${line}" =~ ^(${HEADER_TOKEN_FEED}|${HEADER_TOKEN_SYSTEM}|${HEADER_TOKEN_ENVIRONMENT}|${HEADER_TOKEN_COMPRESSION}|${HEADER_TOKEN_CONTENT_ENCODING}):.* ]]; then
-          echo_warn "Additional header [${YELLOW}${line}${NC}] in the" \
-            "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} uses a reserved" \
-            "token so will be ignored"
-        else
-          add_curl_header_arg "${line}"
-        fi
-      done < "${EXTRA_HEADERS_FILE}"
-    fi
-  }
+  for header in "${HEADERS_ARR[@]}"; do
+    add_curl_header_arg "${header}"
+  done
+
+  if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
+    while read line; do
+      if [[ "${line}" =~ ^(${HEADER_TOKEN_FEED}|${HEADER_TOKEN_COMPRESSION}|${HEADER_TOKEN_CONTENT_ENCODING}):.* ]]; then
+        echo_warn "Additional header [${YELLOW}${line}${NC}] in the" \
+          "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} uses a reserved" \
+          "token so will be ignored"
+      elif header_in "${line}" "${HEADERS_ARR[@]}"; then
+        echo_warn "Additional header [${YELLOW}${line}${NC}] in the" \
+          "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} is trumped by an additional" \
+          "header argument so will be ignored"
+      else
+        add_curl_header_arg "${line}"
+      fi
+    done < "${EXTRA_HEADERS_FILE}"
+  fi
+}
 
 validate_log_dir() {
   if [ ! -d "${LOG_DIR}" ]; then
@@ -313,10 +339,10 @@ send_files() {
     # Remove any leading space
     curl_opts_text="${curl_opts_text# }"
 
-    echo_info "Sending files to [${BLUE}${STROOM_URL}${NC}]," \
+    echo_info "Sending matching files to [${BLUE}${STROOM_URL}${NC}]," \
       "headers [${headers_text}], curl options [${BLUE}${curl_opts_text}${NC}]"
 
-    echo_debug "FILE_REGEX: [${FILE_REGEX}]"
+    echo_debug "FILE_REGEX: [${YELLOW}${FILE_REGEX}${NC}]"
 
     local file_match_count=0
 
