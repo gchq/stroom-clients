@@ -19,7 +19,8 @@
 # m4_ignore(
 echo "This is just a script template, not the script (yet) - pass it to 'argbash' to fix this." >&2
 exit 11  #)Created by argbash-init v2.6.1
-# ARG_OPTIONAL_SINGLE([headers], , [File containing additional HTTP headers. In the form 'HeaderName:header value'], )
+# ARG_OPTIONAL_REPEATED([header], [H], [Extra header in the form 'Key:value'. Any number of extra headers may be specified. These headers trump headers from the additional headers file.], )
+# ARG_OPTIONAL_SINGLE([headers], , [File containing additional HTTP headers. In the form 'Key:value'], )
 # ARG_OPTIONAL_BOOLEAN([secure], [s], [Check for valid certificates if running over HTTPS], off)
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending], [d], [Delete log files after sending them], off)
 # ARG_OPTIONAL_BOOLEAN([pretty], [p], [Use colours in the output, it is recomended to disable this when sending the results to a log file], on)
@@ -32,10 +33,8 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_SINGLE([cert-type], , [The type of the client's certificate], PEM)
 # ARG_OPTIONAL_SINGLE([cacert], , [The certificate authority's certificate file path. The certificate must be in PEM format],)
 # ARG_OPTIONAL_BOOLEAN([debug], , [Run with debug logging enabled], off)
-# ARG_POSITIONAL_SINGLE([log-dir], [Directory to look for log files],)
-# ARG_POSITIONAL_SINGLE([feed], [ Your feed name given to you],)
-# ARG_POSITIONAL_SINGLE([system], [Your system name, i.e. what your project/service or capability is known as], )
-# ARG_POSITIONAL_SINGLE([environment], [Your environment name. Usually SITE_DEPLOYMENT], )
+# ARG_POSITIONAL_SINGLE([log-dir], [Directory to look for matching log files in],)
+# ARG_POSITIONAL_SINGLE([feed], [Then name of the Stroom feed that the data will be sent to],)
 # ARG_POSITIONAL_SINGLE([stroom-url], [The URL you are sending data to (N.B. This should be the HTTPS URL)],)
 # ARG_DEFAULTS_POS
 # ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once.])

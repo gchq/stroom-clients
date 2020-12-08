@@ -17,6 +17,7 @@
 ##########################################################################
 
 # Created by argbash-init v2.6.1
+# ARG_OPTIONAL_REPEATED([header],[H],[Header in the form 'Key:value'],[])
 # ARG_OPTIONAL_SINGLE([headers],[],[File containing additional HTTP headers. In the form 'HeaderName:header value'],[])
 # ARG_OPTIONAL_BOOLEAN([secure],[s],[Check for valid certificates if running over HTTPS],[off])
 # ARG_OPTIONAL_BOOLEAN([delete-after-sending],[d],[Delete log files after sending them],[off])
@@ -32,8 +33,6 @@
 # ARG_OPTIONAL_BOOLEAN([debug],[],[Run with debug logging enabled],[off])
 # ARG_POSITIONAL_SINGLE([log-dir],[Directory to look for log files],[])
 # ARG_POSITIONAL_SINGLE([feed],[ Your feed name given to you],[])
-# ARG_POSITIONAL_SINGLE([system],[Your system name, i.e. what your project/service or capability is known as],[])
-# ARG_POSITIONAL_SINGLE([environment],[Your environment name. Usually SITE_DEPLOYMENT],[])
 # ARG_POSITIONAL_SINGLE([stroom-url],[The URL you are sending data to (N.B. This should be the HTTPS URL)],[])
 # ARG_DEFAULTS_POS()
 # ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once.])
@@ -58,7 +57,7 @@ die()
 
 begins_with_short_option()
 {
-  local first_option all_short_options='sdpzrmhv'
+  local first_option all_short_options='Hsdpzrmhv'
   first_option="${1:0:1}"
   test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -67,10 +66,9 @@ begins_with_short_option()
 _positionals=()
 _arg_log_dir=
 _arg_feed=
-_arg_system=
-_arg_environment=
 _arg_stroom_url=
 # THE DEFAULTS INITIALIZATION - OPTIONALS
+_arg_header=()
 _arg_headers=
 _arg_secure="off"
 _arg_delete_after_sending="off"
@@ -89,12 +87,11 @@ _arg_debug="off"
 print_help()
 {
   printf '%s\n' "This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once."
-  printf 'Usage: %s [--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-z|--(no-)compress] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [--(no-)debug] [-h|--help] [-v|--version] <log-dir> <feed> <system> <environment> <stroom-url>\n' "$0"
+  printf 'Usage: %s [-H|--header <arg>] [--headers <arg>] [-s|--(no-)secure] [-d|--(no-)delete-after-sending] [-p|--(no-)pretty] [-z|--(no-)compress] [-r|--file-regex <arg>] [-m|--max-sleep <arg>] [--key <arg>] [--key-type <arg>] [--cert <arg>] [--cert-type <arg>] [--cacert <arg>] [--(no-)debug] [-h|--help] [-v|--version] <log-dir> <feed> <stroom-url>\n' "$0"
   printf '\t%s\n' "<log-dir>: Directory to look for log files"
   printf '\t%s\n' "<feed>:  Your feed name given to you"
-  printf '\t%s\n' "<system>: Your system name, i.e. what your project/service or capability is known as"
-  printf '\t%s\n' "<environment>: Your environment name. Usually SITE_DEPLOYMENT"
   printf '\t%s\n' "<stroom-url>: The URL you are sending data to (N.B. This should be the HTTPS URL)"
+  printf '\t%s\n' "-H, --header: Header in the form 'Key:value' (empty by default)"
   printf '\t%s\n' "--headers: File containing additional HTTP headers. In the form 'HeaderName:header value' (no default)"
   printf '\t%s\n' "-s, --secure, --no-secure: Check for valid certificates if running over HTTPS (off by default)"
   printf '\t%s\n' "-d, --delete-after-sending, --no-delete-after-sending: Delete log files after sending them (off by default)"
@@ -120,6 +117,17 @@ parse_commandline()
   do
     _key="$1"
     case "$_key" in
+      -H|--header)
+        test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+        _arg_header+=("$2")
+        shift
+        ;;
+      --header=*)
+        _arg_header+=("${_key##--header=}")
+        ;;
+      -H*)
+        _arg_header+=("${_key##-H}")
+        ;;
       --headers)
         test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
         _arg_headers="$2"
@@ -271,16 +279,16 @@ parse_commandline()
 
 handle_passed_args_count()
 {
-  local _required_args_string="'log-dir', 'feed', 'system', 'environment' and 'stroom-url'"
-  test "${_positionals_count}" -ge 5 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 5 (namely: $_required_args_string), but got only ${_positionals_count}." 1
-  test "${_positionals_count}" -le 5 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 5 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
+  local _required_args_string="'log-dir', 'feed' and 'stroom-url'"
+  test "${_positionals_count}" -ge 3 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 3 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+  test "${_positionals_count}" -le 3 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 3 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
 }
 
 
 assign_positional_args()
 {
   local _positional_name _shift_for=$1
-  _positional_names="_arg_log_dir _arg_feed _arg_system _arg_environment _arg_stroom_url "
+  _positional_names="_arg_log_dir _arg_feed _arg_stroom_url "
 
   shift "$_shift_for"
   for _positional_name in ${_positional_names}
