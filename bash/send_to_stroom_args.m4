@@ -32,13 +32,16 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_SINGLE([cert], , [The client's certificate file path. The certificate should be in PEM format],)
 # ARG_OPTIONAL_SINGLE([cert-type], , [The type of the client's certificate], PEM)
 # ARG_OPTIONAL_SINGLE([cacert], , [The certificate authority's certificate file path. The certificate must be in PEM format],)
+# ARG_OPTIONAL_SINGLE([system], , [The name of the system producing the log events, shortcut for -H System:SYSTEM_NAME], )
+# ARG_OPTIONAL_SINGLE([environment], , [The type of environment of the system producing the log events, E.g. DEV,OPS,etc., shortcut for -H Environment:ENV_NAME], )
 # ARG_OPTIONAL_BOOLEAN([debug], , [Run with debug logging enabled], off)
+
 # ARG_POSITIONAL_SINGLE([log-dir], [Directory to look for matching log files in],)
 # ARG_POSITIONAL_SINGLE([feed], [Then name of the Stroom feed that the data will be sent to],)
 # ARG_POSITIONAL_SINGLE([stroom-url], [The URL you are sending data to (N.B. This should be the HTTPS URL)],)
 # ARG_DEFAULTS_POS
-# ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url. If matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set. Only one instance of send_to_stroom can run in a 'log-dir' at once.])
-# ARG_VERSION([echo $0 v1.8.1])
+# ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url.\nIf matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set.\nOnly one instance of send_to_stroom can run in a 'log-dir' at once.\n])
+# ARG_VERSION_AUTO([SNAPSHOT_VERSION])
 # ARGBASH_SET_INDENT([  ])
 # ARGBASH_GO
 

@@ -32,6 +32,8 @@ source "${DIR}/send_to_stroom_args.sh"
   readonly STROOM_URL=${_arg_stroom_url}
   # Each -H arg is added into an array
   readonly HEADERS_ARR=( "${_arg_header[@]}" )
+  readonly SYSTEM=${_arg_system}
+  readonly ENVIRONMENT=${_arg_environment}
   readonly SECURE=${_arg_secure}
   readonly CERT=${_arg_cert}
   readonly CERT_TYPE=${_arg_cert_type}
@@ -55,6 +57,8 @@ readonly THIS_PID=$$
 # Stroom reserved header tokens
 # see https://gchq.github.io/stroom-docs/user-guide/sending-data/header-arguments.html
 readonly HEADER_TOKEN_FEED="Feed"
+readonly HEADER_TOKEN_SYSTEM="System"
+readonly HEADER_TOKEN_ENVIRONMENT="Environment"
 readonly HEADER_TOKEN_COMPRESSION="Compression"
 
 # Valid values for the Compression header token
@@ -205,6 +209,26 @@ configure_curl_headers() {
   # any of the same name in the file
   add_curl_header_arg "${HEADER_TOKEN_FEED}" "${FEED}"
 
+  # Turn --system arg into a curl header arg
+  if [[ -n "${SYSTEM}" ]]; then
+    if header_in "${HEADER_TOKEN_SYSTEM}:${SYSTEM}" "${HEADERS_ARR[@]}"; then
+      echo_error "The ${YELLOW}--system${NC} argument has been set in addition to the" \
+        "${YELLOW}-H/--header ${HEADER_TOKEN_SYSTEM}:...${NC} argument. Use one or the other."
+      exit 1
+    fi
+    add_curl_header_arg "${HEADER_TOKEN_SYSTEM}" "${SYSTEM}"
+  fi
+
+  # Turn --environment arg into a curl header arg
+  if [[ -n "${ENVIRONMENT}" ]]; then
+    if header_in "${HEADER_TOKEN_ENVIRONMENT}:${ENVIRONMENT}" "${HEADERS_ARR[@]}"; then
+      echo_error "The ${YELLOW}--environment${NC} argument has been set in addition to the" \
+        "${YELLOW}-H/--header ${HEADER_TOKEN_SYSTEM}:...${NC} argument. Use one or the other."
+      exit 1
+    fi
+    add_curl_header_arg "${HEADER_TOKEN_ENVIRONMENT}" "${ENVIRONMENT}"
+  fi
+
   for header in "${HEADERS_ARR[@]}"; do
     add_curl_header_arg "${header}"
   done
@@ -219,6 +243,20 @@ configure_curl_headers() {
         echo_warn "Additional header [${YELLOW}${line}${NC}] in the" \
           "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} is trumped by an additional" \
           "header argument so will be ignored"
+      elif [[ "${line}" =~ ^${HEADER_TOKEN_SYSTEM}:.* ]] \
+        && [[ -n "${SYSTEM}" ]] ; then
+
+        echo_warn "Additional ${HEADER_TOKEN_SYSTEM} header" \
+          "[${YELLOW}${line}${NC}] in the" \
+          "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} is trumped by the ${YELLOW}--system${NC}" \
+          "argument so will be ignored"
+      elif [[ "${line}" =~ ^${HEADER_TOKEN_ENVIRONMENT}:.* ]] \
+        && [[ -n "${ENVIRONMENT}" ]] ; then
+
+        echo_warn "Additional ${HEADER_TOKEN_ENVIRONMENT} header" \
+          "[${YELLOW}${line}${NC}] in the" \
+          "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} is trumped by the ${YELLOW}--environment${NC}" \
+          "argument so will be ignored"
       else
         add_curl_header_arg "${line}"
       fi
@@ -238,7 +276,7 @@ validate_log_dir() {
 validate_extra_headers_file() {
   if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
     if [ ! -f "${EXTRA_HEADERS_FILE}" ]; then
-      echo_error "The supplied file for the '${YELLOW}-h / --headers${NC}'" \
+      echo_error "The supplied file for the '${YELLOW}-h/--headers${NC}'" \
         "argument [${BLUE}${EXTRA_HEADERS_FILE}${NC}] does not exist. Exiting."
       exit 1
     fi
@@ -339,8 +377,9 @@ send_files() {
     # Remove any leading space
     curl_opts_text="${curl_opts_text# }"
 
-    echo_info "Sending matching files to [${BLUE}${STROOM_URL}${NC}]," \
-      "headers [${headers_text}], curl options [${BLUE}${curl_opts_text}${NC}]"
+    echo_info "Sending matching files to [${BLUE}${STROOM_URL}${NC}]"
+    echo_info "Sending headers [${headers_text}]"
+    echo_info "Using curl options [${BLUE}${curl_opts_text}${NC}]"
 
     echo_debug "FILE_REGEX: [${YELLOW}${FILE_REGEX}${NC}]"
 
