@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-## [send-to-stroom-v3.1] - 2021-05-26
+## [send-to-stroom-v3.1.0] - 2021-05-26
 
 * Added optional `--system` and `--environment` arguments.
+
+* Split one info logging line into three.
 
 
 ## [send-to-stroom-v3.0] - 2020-12-08
@@ -17,6 +19,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * Removed mandatory system and environment positional arguments.
 
 
-[Unreleased]: https://github.com/gchq/stroom-clients/compare/send-to-stroom-v3.1...HEAD
-[send-to-stroom-v3.1]: https://github.com/gchq/stroom-clients/compare/send-to-stroom-v3.0..send-to-stroom-v3.1
+[Unreleased]: https://github.com/gchq/stroom-clients/compare/send-to-stroom-v3.1.0...HEAD
+[send-to-stroom-v3.1]: https://github.com/gchq/stroom-clients/compare/send-to-stroom-v3.0..send-to-stroom-v3.1.0
 [send-to-stroom-v3.0]: https://github.com/gchq/stroom-clients/compare/send-to-stroom-v2.1..send-to-stroom-v3.0
