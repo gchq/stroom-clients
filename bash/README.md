@@ -71,7 +71,7 @@ To release a new version of the script run the generation as follows:
 Tag the version in git:
 
 ```bash
-version=v1.2.3 git tag -a "send-to-stroom-{$version}" -m "Releasing send_to_stroom ${version}" && git push origin "send-to-stroom-{$version}"
+version="v1.2.3" git tag -a "send-to-stroom-${version}" -m "Releasing send_to_stroom ${version}" && git push origin "send-to-stroom-${version}"
 ```
 
 In github create a relase for this tag and upload the following files are release artefacts:
