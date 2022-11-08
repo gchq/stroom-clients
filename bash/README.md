@@ -60,6 +60,8 @@ To modify the command line arguments edit the `.m4` file (see the argbash docume
 to regenerate the `send_to_stroom_args.sh` script.
 This script runs argbash in a docker container so you need to have docker installed, but no other dependencies.
 
+Alternatively, you can use the argbash online script generator and save the output file as `bash/send_to_stroom_args.sh`
+
 ### Releasing
 
 To release a new version of the script run the generation as follows:
@@ -74,7 +76,7 @@ Tag the version in git:
 version="v1.2.3" git tag -a "send-to-stroom-${version}" -m "Releasing send_to_stroom ${version}" && git push origin "send-to-stroom-${version}"
 ```
 
-In github create a relase for this tag and upload the following files are release artefacts:
+In github create a release for this tag and upload the following files as release artefacts:
 
 * send_to_stroom.sh
 * send_to_stroom_args.sh
