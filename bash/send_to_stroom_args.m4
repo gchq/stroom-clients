@@ -34,7 +34,7 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_SINGLE([token-endpoint], , [Required for OIDC token authentication - The IdP token endpoint. e.g https://login.microsoftonline.com/<tenant id>/oauth2/token],)
 # ARG_OPTIONAL_SINGLE([token-client-app-id], , [Required for OIDC token authentication - The ID of your client app as known to the IdP. This is a UUID when Active Directory is the IdP.],)
 # ARG_OPTIONAL_SINGLE([token-stroom-app-id], , [Required for OIDC token authentication - The ID of the stroom destination app known to the IdP.  Ask your Stroom admin for this information if unknown.],)
-# ARG_OPTIONAL_SINGLE([token-client-secret-filename], , [Required for OIDC token authentication - A text file (no-newlines) containing the secret associated with the app client known to the IdP.  The secret can be created by admins of the client app, e.g. with Active Directory.],)
+# ARG_OPTIONAL_SINGLE([token-client-secret-filename], , [Required for OIDC token authentication - A single line text file containing the secret associated with the app client known to the IdP.  The secret can be created by admins of the client app, e.g. with Active Directory.],)
 # ARG_OPTIONAL_SINGLE([cacert], , [The certificate authority's certificate file path. The certificate must be in PEM format],)
 # ARG_OPTIONAL_SINGLE([system], , [The name of the system producing the log events, shortcut for -H System:SYSTEM_NAME], )
 # ARG_OPTIONAL_SINGLE([environment], , [The type of environment of the system producing the log events, E.g. DEV,OPS,etc., shortcut for -H Environment:ENV_NAME], )
