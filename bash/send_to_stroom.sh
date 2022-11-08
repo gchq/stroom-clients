@@ -47,6 +47,10 @@ source "${DIR}/send_to_stroom_args.sh"
   readonly DEBUG=${_arg_debug}
   readonly FILE_REGEX=${_arg_file_regex:-.*/.*\.log}
   readonly EXTRA_HEADERS_FILE=${_arg_headers}
+  readonly TOKEN_ENDPOINT=${_arg_token_endpoint}
+  readonly TOKEN_CLIENT_APP_ID=${_arg_token_client_app_id}
+  readonly TOKEN_STROOM_APP_ID=${_arg_token_stroom_app_id}
+  readonly TOKEN_CLIENT_SECRET_FILENAME=${_arg_token_client_secret_filename}
 }
 
 # Configure other constants
@@ -229,6 +233,11 @@ configure_curl_headers() {
     add_curl_header_arg "${HEADER_TOKEN_ENVIRONMENT}" "${ENVIRONMENT}"
   fi
 
+  # If using OIDC token authentication, create the token
+  if check_oidc_token_args_present; then
+    get_oidc_token_from_idp
+  fi
+
   for header in "${HEADERS_ARR[@]}"; do
     add_curl_header_arg "${header}"
   done
@@ -333,7 +342,7 @@ is_file_not_empty() {
     fi
   fi
 
-  if "${is_not_empty}" = true ]]; then
+  if [[ "${is_not_empty}" = true ]]; then
     echo_debug "Non-empty file: ${file}"
     return 0
   else
@@ -455,6 +464,48 @@ dump_header_args_in_debug() {
       "${curl_headers[@]}" \
       "${file_specific_curl_headers[@]}" \
       "${NC}]"
+  fi
+}
+
+get_oidc_token_from_idp() {
+
+  #Secret is retained in a file as command-line args are public
+  if [[ -f ${TOKEN_CLIENT_SECRET_FILENAME} ]]; then
+    echo_debug "Reading client secret from ${TOKEN_CLIENT_SECRET_FILENAME}."
+  else
+    echo_error "FATAL: Client secret file ${TOKEN_CLIENT_SECRET_FILENAME} not found or not a regular file."
+    exit 1
+  fi
+
+  TOKEN_CLIENT_SECRET=$(cat ${TOKEN_CLIENT_SECRET_FILENAME} | tr '\n' '¬' | sed 's/¬//g' )
+  echo_debug "Using client secret ${TOKEN_CLIENT_SECRET}"
+
+  OIDC_OUTPUT=$(curl -q ${TOKEN_ENDPOINT} -H "Content-Type: application/x-www-form-urlencoded" \
+    --data "grant_type=client_credentials&client_id=${TOKEN_CLIENT_APP_ID}&\
+    client_secret=${TOKEN_CLIENT_SECRET}&\
+    resource=${TOKEN_STROOM_APP_ID}" )
+
+  echo_debug "OIDC result: ${OIDC_OUTPUT}"
+}
+
+check_oidc_token_args_present() {
+  if [ "x${TOKEN_ENDPOINT}${TOKEN_CLIENT_APP_ID}${TOKEN_STROOM_APP_ID}${TOKEN_CLIENT_SECRET_FILENAME}" = "x" ]; then
+    false
+  elif [ "x${TOKEN_ENDPOINT}" = "x" ]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    exit 1
+  elif [ "x${TOKEN_CLIENT_APP_ID}" = "x" ]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    exit 1
+  elif [ "x${TOKEN_STROOM_APP_ID}" = "x" ]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    exit 1
+  elif [ "x${TOKEN_CLIENT_SECRET_FILENAME}" = "x" ]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    exit 1
+  else
+    echo_debug "OIDC token authentication parameters provided."
+    true
   fi
 }
 
