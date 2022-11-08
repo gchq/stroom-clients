@@ -76,7 +76,7 @@ Tag the version in git:
 version="v1.2.3" git tag -a "send-to-stroom-${version}" -m "Releasing send_to_stroom ${version}" && git push origin "send-to-stroom-${version}"
 ```
 
-In github create a relase for this tag and upload the following files are release artefacts:
+In github create a release for this tag and upload the following files as release artefacts:
 
 * send_to_stroom.sh
 * send_to_stroom_args.sh

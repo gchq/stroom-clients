@@ -236,6 +236,7 @@ configure_curl_headers() {
   # If using OIDC token authentication, create the token
   if check_oidc_token_args_present; then
     get_oidc_token_from_idp
+    add_curl_header_arg "Authorization" "Bearer ${OIDC_ACCESS_TOKEN}"
   fi
 
   for header in "${HEADERS_ARR[@]}"; do
@@ -473,19 +474,29 @@ get_oidc_token_from_idp() {
   if [[ -f ${TOKEN_CLIENT_SECRET_FILENAME} ]]; then
     echo_debug "Reading client secret from ${TOKEN_CLIENT_SECRET_FILENAME}."
   else
-    echo_error "FATAL: Client secret file ${TOKEN_CLIENT_SECRET_FILENAME} not found or not a regular file."
+    echo_error "FATAL: Client secret file ${BLUE}${TOKEN_CLIENT_SECRET_FILENAME}${NC} not found or not a regular file."
     exit 1
   fi
 
-  TOKEN_CLIENT_SECRET=$(cat ${TOKEN_CLIENT_SECRET_FILENAME} | tr '\n' '¬' | sed 's/¬//g' )
+  TOKEN_CLIENT_SECRET=$(cat "${TOKEN_CLIENT_SECRET_FILENAME}" | tr '\n' '¬' | sed 's/¬//g' )
   echo_debug "Using client secret ${TOKEN_CLIENT_SECRET}"
 
-  OIDC_OUTPUT=$(curl -q ${TOKEN_ENDPOINT} -H "Content-Type: application/x-www-form-urlencoded" \
+  OIDC_OUTPUT=$(curl -s "${TOKEN_ENDPOINT}" -H "Content-Type: application/x-www-form-urlencoded" \
     --data "grant_type=client_credentials&client_id=${TOKEN_CLIENT_APP_ID}&\
     client_secret=${TOKEN_CLIENT_SECRET}&\
     resource=${TOKEN_STROOM_APP_ID}" )
 
-  echo_debug "OIDC result: ${OIDC_OUTPUT}"
+  echo_debug "OIDC result: ${BLUE}${OIDC_OUTPUT}${NC}"
+
+  if [[ "${OIDC_OUTPUT}" =~ "access_token" ]]; then
+    ACCESS_TOKEN=$(echo "${OIDC_OUTPUT}" | sed 's/access_token\":\"/¬/' | cut -d ¬ -f 2 | cut -d '"' -f 1)
+    echo_debug "Received token ${CYAN}${ACCESS_TOKEN}${NC}"
+    OIDC_ACCESS_TOKEN="${ACCESS_TOKEN}"
+  else
+    echo_error "FATAL: Token not issued by OIDC provided."
+    echo_error "Output was ${BLUE}${OIDC_OUTPUT}${NC}"
+    exit 1
+  fi
 }
 
 check_oidc_token_args_present() {
