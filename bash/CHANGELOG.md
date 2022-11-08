@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [send-to-stroom-v3.2.1] - 2021-11-08
+
+* Output version number on start-up.
+
+
+## [send-to-stroom-v3.2.0] - 2021-11-08
+
+* Added support for OIDC Client Credentials Authentication
+
+
 ## [send-to-stroom-v3.1.0] - 2021-05-26
 
 * Added optional `--system` and `--environment` arguments.

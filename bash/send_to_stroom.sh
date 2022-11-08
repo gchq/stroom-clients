@@ -607,7 +607,6 @@ send_file() {
 
 main() {
   setup_echo_colours
-
   # Define echo prefixes for consistent log messages
   # INFO=blue, WARN=RED, ERROR=BOLD_RED is consistent with logback colour highlighting
   # however they use defaul colour for other levels, here we use DEBUG=MAGENTA
@@ -629,6 +628,9 @@ main() {
     echo_warn "This is a warn test"
     echo_error "This is an error test"
   fi
+
+  VERSION="v3.2.1"
+  echo_info "${BLUE}send_to_stroom.sh${NC} ${CYAN}${VERSION}${NC} is starting..."
 
   validate_log_dir
   validate_extra_headers_file
