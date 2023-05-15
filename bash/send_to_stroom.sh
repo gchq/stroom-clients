@@ -478,7 +478,7 @@ get_oidc_token_from_idp() {
     exit 1
   fi
 
-  TOKEN_CLIENT_SECRET=$(cat "${TOKEN_CLIENT_SECRET_FILENAME}" | tr '\n' '¬' | sed 's/¬//g' )
+  TOKEN_CLIENT_SECRET=$(< "${TOKEN_CLIENT_SECRET_FILENAME}")
   echo_debug "Using client secret ${TOKEN_CLIENT_SECRET}"
 
   OIDC_OUTPUT=$(curl -s "${TOKEN_ENDPOINT}" -H "Content-Type: application/x-www-form-urlencoded" \
