@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [send-to-stroom-v3.3.0] - 2025-04-23
 
+* Add option to specify a script/executable to call that determines Authorization:Bearer
+* Allow feed to be set to 'auto' to suppress FEED header where Stroom automatically assigns feed
+* Redact Authorization:Bearer token from the log output
 
 ## [send-to-stroom-v3.2.2] - 2023-05-15
 
