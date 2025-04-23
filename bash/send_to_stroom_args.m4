@@ -31,6 +31,7 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_SINGLE([key-type], , [The type of the client's private key.], PEM)
 # ARG_OPTIONAL_SINGLE([cert], , [The client's certificate file path.],)
 # ARG_OPTIONAL_SINGLE([cert-type], , [The type of the client's certificate.], PEM)
+# ARG_OPTIONAL_SINGLE([auth-generator], , [Path to a zero args executable that outputs the required "Authorization: Bearer" credential to stdout. Typically used in conjunction with Data Feed Keys],)
 # ARG_OPTIONAL_SINGLE([token-endpoint], , [Required for OIDC token authentication - The IdP token endpoint. e.g https://login.microsoftonline.com/<tenant id>/oauth2/token],)
 # ARG_OPTIONAL_SINGLE([token-client-app-id], , [Required for OIDC token authentication - The ID of your client app as known to the IdP. This is a UUID when Active Directory is the IdP.],)
 # ARG_OPTIONAL_SINGLE([token-stroom-app-id], , [Required for OIDC token authentication - The ID of the stroom destination app known to the IdP.  Ask your Stroom admin for this information if unknown.],)
@@ -41,7 +42,7 @@ exit 11  #)Created by argbash-init v2.6.1
 # ARG_OPTIONAL_BOOLEAN([debug], , [Run with debug logging enabled], off)
 
 # ARG_POSITIONAL_SINGLE([log-dir], [Directory to look for matching log files in],)
-# ARG_POSITIONAL_SINGLE([feed], [Then name of the Stroom feed that the data will be sent to],)
+# ARG_POSITIONAL_SINGLE([feed], [The name of the Stroom feed that the data will be sent to.  If stroom is configured to assign the feed automatically, you should supply the literal 'auto' for this arg],)
 # ARG_POSITIONAL_SINGLE([stroom-url], [The URL you are sending data to (N.B. This should be the HTTPS URL)],)
 # ARG_DEFAULTS_POS
 # ARG_HELP([This script will send log files in 'log-dir' to Stroom using the specified stroom-url.\nIf matching log files have the extension .gz or .zip then the appropriate 'Compression:...' header will be set.\nOnly one instance of send_to_stroom can run in a 'log-dir' at once.\n])

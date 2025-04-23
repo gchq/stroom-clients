@@ -51,6 +51,7 @@ source "${DIR}/send_to_stroom_args.sh"
   readonly TOKEN_CLIENT_APP_ID=${_arg_token_client_app_id}
   readonly TOKEN_STROOM_APP_ID=${_arg_token_stroom_app_id}
   readonly TOKEN_CLIENT_SECRET_FILENAME=${_arg_token_client_secret_filename}
+  readonly AUTH_GENERATOR=${_arg_auth_generator}
 }
 
 # Configure other constants
@@ -211,7 +212,20 @@ configure_curl_headers() {
 
   # These ones are special as we always need them and they will trump
   # any of the same name in the file
-  add_curl_header_arg "${HEADER_TOKEN_FEED}" "${FEED}"
+
+  if [[ "${FEED}" = "auto" ]]; then
+    # If the feed is set to 'auto' then we don't want to send a feed header
+    # as this will override the auto-detection of the feed
+    echo_info "Feed set to 'auto', not sending a feed header"
+  else
+    if header_in "${HEADER_TOKEN_FEED}:${FEED}" "${HEADERS_ARR[@]}"; then
+      echo_error "The ${YELLOW}--feed${NC} argument has been set in addition to the" \
+        "${YELLOW}-H/--header ${HEADER_TOKEN_FEED}:...${NC} argument. Use one or the other."
+      exit 1
+    else
+      add_curl_header_arg "${HEADER_TOKEN_FEED}" "${FEED}"
+    fi
+  fi
 
   # Turn --system arg into a curl header arg
   if [[ -n "${SYSTEM}" ]]; then
@@ -237,6 +251,21 @@ configure_curl_headers() {
   if check_oidc_token_args_present; then
     get_oidc_token_from_idp
     add_curl_header_arg "Authorization" "Bearer ${OIDC_ACCESS_TOKEN}"
+  fi
+
+  if [ "x${AUTH_GENERATOR}" != "x" ]; then
+    # If using a auth generator, run it to create the data feed key
+    if [ ! -x "${AUTH_GENERATOR}" ]; then
+      echo_error "FATAL: Auth generator ${BLUE}${AUTH_GENERATOR}${NC} not found or not executable."
+      exit 1
+    fi
+    AUTH_DFK=$("${AUTH_GENERATOR}")
+    auth_dfk_status=$?
+    if [ ! ${auth_dfk_status} -eq 0 ]; then
+      echo_error "FATAL: DFK generator ${BLUE}${AUTH_GENERATOR}${NC} faied with an exit code of ${auth_dfk_status}."
+      exit 1
+    fi
+    add_curl_header_arg "Authorization" "Bearer ${AUTH_DFK}"
   fi
 
   for header in "${HEADERS_ARR[@]}"; do
@@ -365,8 +394,14 @@ send_files() {
         # Capture the two parts of the header line
         # Remove from colon onwards
         header_token="${elm%:*}"
-        # Remove up to and including colon
-        header_value="${elm#*:}"
+
+        # Redact value of Authorization:Bearer header
+        if [[ ${header_token} =~ Authorization ]]; then
+          header_value="Bearer <redacted>"
+        else
+          # Remove up to and including colon
+          header_value="${elm#*:}"
+        fi
 
         # Concat this header with the others, adding some colour
         headers_text="${headers_text}, ${header_token}:${YELLOW}${header_value}${NC}"
@@ -388,7 +423,8 @@ send_files() {
     curl_opts_text="${curl_opts_text# }"
 
     echo_info "Sending matching files to [${BLUE}${STROOM_URL}${NC}]"
-    echo_info "Sending headers [${headers_text}]"
+
+    echo_info "Sending headers [${headers_text} ]"
     echo_info "Using curl options [${BLUE}${curl_opts_text}${NC}]"
 
     echo_debug "FILE_REGEX: [${YELLOW}${FILE_REGEX}${NC}]"
