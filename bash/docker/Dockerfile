@@ -14,12 +14,12 @@
 # limitations under the License.
 #**********************************************************************
 
-FROM alpine:3.13.5
+FROM alpine:3.22.1
 
 # Work from the shared git repo dir
 WORKDIR /builder/shared
 
-ARG ARGBASH_VERSION=2.10.0
+ARG ARGBASH_VERSION=2.11.0
 
 ARG SEND_TO_STROOM_VERSION
 
@@ -47,6 +47,7 @@ ENTRYPOINT ["/sbin/tini", "--", "/builder/docker-entrypoint.sh"]
 CMD bash
 
 RUN apk add --no-cache \
+      shellcheck \
       autoconf \
       bash \
       curl \

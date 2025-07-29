@@ -54,13 +54,22 @@ main() {
 
   setup_echo_colours
 
+  script_file="send_to_stroom.sh"
   template_file="send_to_stroom_args.m4"
   output_file="send_to_stroom_args.sh"
 
+  # Use the args template to generate a script that send_to_stroom.sh
+  # will source for arg parsing.
   "${SCRIPT_DIR}/runInDocker.sh" \
     "/builder/argbash/bin/argbash ${template_file} -o ${output_file}"
 
   echo -e "${GREEN}Generated file ${BLUE}${SCRIPT_DIR}/${output_file}${NC}"
+
+  echo -e "${GREEN}Running shellcheck against ${BLUE}${SCRIPT_DIR}/${script_file}${NC}"
+
+  # Run shellcheck to spot any bash mistakes
+  "${SCRIPT_DIR}/runInDocker.sh" \
+    "shellcheck ${script_file} ${output_file}"
 
   if [[ -n "${script_version}" ]]; then
     echo -e "${GREEN}Setting version to ${YELLOW}${script_version}${GREEN} in" \

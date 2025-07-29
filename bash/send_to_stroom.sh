@@ -22,6 +22,7 @@
 # 'argbash send_to_stroom_args.m4 -o send_to_stroom_args.sh'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+# shellcheck disable=SC1091
 source "${DIR}/send_to_stroom_args.sh"
 
 # shellcheck disable=SC2154
@@ -55,7 +56,8 @@ source "${DIR}/send_to_stroom_args.sh"
 }
 
 # Configure other constants
-readonly LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
+LOCK_FILE=${LOG_DIR}/$(basename "$0").lck
+readonly LOCK_FILE
 readonly SLEEP=$((RANDOM % (MAX_SLEEP+1)))
 readonly THIS_PID=$$
 
@@ -81,7 +83,7 @@ is_compression_required=false
 is_supported_compressed_file=false
 
 echo_debug() {
-  if [ "${DEBUG}" = "on" ]; then
+  if [[ "${DEBUG}" = "on" ]]; then
     echo -e "${DEBUG_PREFIX}" "$@"
   fi
 }
@@ -103,7 +105,7 @@ setup_echo_colours() {
   # Exit the script on any error
   set -e
   # shellcheck disable=SC2034
-  if [ "${PRETTY}" = "off" ]; then
+  if [[ "${PRETTY}" = "off" ]]; then
     RED=''
     BOLD_RED=''
     GREEN=''
@@ -148,39 +150,41 @@ header_in () {
 
 configure_curl_security() {
   curl_opts=()
-  if [ "${SECURE}" = "off" ]; then
-    curl_opts+=(-k)
+  curl_security_opts=()
+  if [[ "${SECURE}" = "off" ]]; then
+    curl_security_opts+=( "-k" )
     echo_info "Running in insecure mode where we do not check SSL certificates."
   fi
 
-  if [ ! "x${CERT}" = "x" ]; then
-    curl_opts+=(--cert "${CERT}")
-
+  if [[ -n "${CERT}" ]]; then
+    curl_security_opts+=( "--cert" "${CERT}" )
   fi
 
-  if [ ! "x${KEY}" = "x" ]; then
-    curl_opts+=(--key "${KEY}")
+  if [[ -n "${KEY}" ]]; then
+    curl_security_opts+=( "--key" "${KEY}" )
 
-    if [ ! "x${KEY_TYPE}" = "x" ]; then
-      curl_opts+=(--key-type "${KEY_TYPE}")
+    if [[ -n "${KEY_TYPE}" ]]; then
+      curl_security_opts+=( "--key-type" "${KEY_TYPE}" )
     fi
   fi
 
-  if [ ! "x${CACERT}" = "x" ]; then
-    curl_opts+=(--cacert "${CACERT}")
+  if [[ -n "${CACERT}" ]]; then
+    curl_security_opts+=( "--cacert" "${CACERT}" )
   fi
 
-  if [ ! "x${CERT}" = "x" ] || [ ! "x${CACERT}" = "x" ] ; then
-    if [ ! "x${CERT_TYPE}" = "x" ]; then
-      curl_opts+=(--cert-type "${CERT_TYPE}")
+  if [[ -n "${CERT}" || -n "${CACERT}" ]] ; then
+    if [[ -n "${CERT_TYPE}" ]]; then
+      curl_security_opts+=( "--cert-type" "${CERT_TYPE}" )
     fi
   fi
+  echo_debug "curl_security_opts: ${curl_security_opts[*]}"
+  curl_opts+=( "${curl_security_opts[@]}" )
 }
 
 add_curl_header_arg() {
   local header_line=
 
-  if [ "$#" -eq 2 ]; then
+  if [[ "$#" -eq 2 ]]; then
     local header_token="$1"
     local header_value="$2"
     header_line="${header_token}:${header_value}"
@@ -195,7 +199,7 @@ add_curl_header_arg() {
 add_file_specific_curl_header_arg() {
   local header_line=
 
-  if [ "$#" -eq 2 ]; then
+  if [[ "$#" -eq 2 ]]; then
     local header_token="$1"
     local header_value="$2"
     header_line="${header_token}:${header_value}"
@@ -253,15 +257,15 @@ configure_curl_headers() {
     add_curl_header_arg "Authorization" "Bearer ${OIDC_ACCESS_TOKEN}"
   fi
 
-  if [ "x${AUTH_GENERATOR}" != "x" ]; then
+  if [[ -n "${AUTH_GENERATOR}" ]]; then
     # If using a auth generator, run it to create the data feed key
-    if [ ! -x "${AUTH_GENERATOR}" ]; then
+    if [[ ! -x "${AUTH_GENERATOR}" ]]; then
       echo_error "FATAL: Auth generator ${BLUE}${AUTH_GENERATOR}${NC} not found or not executable."
       exit 1
     fi
     AUTH_DFK=$("${AUTH_GENERATOR}")
     auth_dfk_status=$?
-    if [ ! ${auth_dfk_status} -eq 0 ]; then
+    if [[ ! ${auth_dfk_status} -eq 0 ]]; then
       echo_error "FATAL: DFK generator ${BLUE}${AUTH_GENERATOR}${NC} faied with an exit code of ${auth_dfk_status}."
       exit 1
     fi
@@ -272,8 +276,8 @@ configure_curl_headers() {
     add_curl_header_arg "${header}"
   done
 
-  if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
-    while read line; do
+  if [[ -n "${EXTRA_HEADERS_FILE}" ]]; then
+    while read -r line; do
       if [[ "${line}" =~ ^(${HEADER_TOKEN_FEED}|${HEADER_TOKEN_COMPRESSION}|${HEADER_TOKEN_CONTENT_ENCODING}):.* ]]; then
         echo_warn "Additional header [${YELLOW}${line}${NC}] in the" \
           "file ${BLUE}${EXTRA_HEADERS_FILE}${NC} uses a reserved" \
@@ -304,7 +308,7 @@ configure_curl_headers() {
 }
 
 validate_log_dir() {
-  if [ ! -d "${LOG_DIR}" ]; then
+  if [[ ! -d "${LOG_DIR}" ]]; then
     echo_warn "The supplied directory for the '${YELLOW}log-dir${NC}'" \
       "argument [${BLUE}${LOG_DIR}${NC}] does not exist, therefore there" \
       "is nothing to send. Exiting."
@@ -313,8 +317,8 @@ validate_log_dir() {
 }
 
 validate_extra_headers_file() {
-  if [ ! "x${EXTRA_HEADERS_FILE}" = "x" ]; then
-    if [ ! -f "${EXTRA_HEADERS_FILE}" ]; then
+  if [[ -n "${EXTRA_HEADERS_FILE}" ]]; then
+    if [[ ! -f "${EXTRA_HEADERS_FILE}" ]]; then
       echo_error "The supplied file for the '${YELLOW}-h/--headers${NC}'" \
         "argument [${BLUE}${EXTRA_HEADERS_FILE}${NC}] does not exist. Exiting."
       exit 1
@@ -323,7 +327,7 @@ validate_extra_headers_file() {
 }
 
 get_lock() {
-  if [ -f "${LOCK_FILE}" ]; then
+  if [[ -f "${LOCK_FILE}" ]]; then
     LOCK_FILE_PID=$(head -n 1 "${LOCK_FILE}")
     if ps -p "$LOCK_FILE_PID" > /dev/null; then
       echo_warn "This script is already running is already running" \
@@ -382,7 +386,7 @@ is_file_not_empty() {
 }
 
 send_files() {
-  if [ "${MAX_SLEEP}" -ne 0 ]; then
+  if [[ "${MAX_SLEEP}" -ne 0 ]]; then
     echo_info "Will sleep for ${SLEEP}s to help balance network traffic"
     sleep ${SLEEP}
   fi
@@ -432,10 +436,10 @@ send_files() {
     local file_match_count=0
 
     # Loop over all files in the log directory
-    for file in ${LOG_DIR}/*; do
+    for file in "${LOG_DIR}"/*; do
       # Ignore the lock file and check the file matches the pattern and is a
       # regular file
-      if [[ ! "x${file}" = "x${LOCK_FILE}" ]] \
+      if [[ "${file}" != "${LOCK_FILE}" ]] \
         && [[ -f ${file} ]] \
         && [[ "${file}" =~ ${FILE_REGEX} ]]; then
 
@@ -488,7 +492,7 @@ add_compression_header_if_required() {
   echo_debug "is_compression_required: ${is_compression_required}"
   echo_debug "is_supported_compressed_file: ${is_supported_compressed_file}"
 
-  if [ ! "x${header_value}" = "x" ]; then
+  if [ -n "${header_value}" ]; then
     add_file_specific_curl_header_arg \
       "${HEADER_TOKEN_COMPRESSION}" \
       "${header_value}"
@@ -517,15 +521,40 @@ get_oidc_token_from_idp() {
   TOKEN_CLIENT_SECRET=$(< "${TOKEN_CLIENT_SECRET_FILENAME}")
   echo_debug "Using client secret ${TOKEN_CLIENT_SECRET}"
 
-  OIDC_OUTPUT=$(curl -s "${TOKEN_ENDPOINT}" -H "Content-Type: application/x-www-form-urlencoded" \
-    --data "grant_type=client_credentials&client_id=${TOKEN_CLIENT_APP_ID}&\
-    client_secret=${TOKEN_CLIENT_SECRET}&\
-    resource=${TOKEN_STROOM_APP_ID}" )
+  oidc_curl_opts=()
+  if [[ -n "${TOKEN_CLIENT_APP_ID}" ]]; then
+    oidc_curl_opts+=( "--data-urlencode" "client_id=${TOKEN_CLIENT_APP_ID}" )
+  fi
+  if [[ -n "${TOKEN_CLIENT_SECRET}" ]]; then
+    oidc_curl_opts+=( "--data-urlencode" "client_secret=${TOKEN_CLIENT_SECRET}" )
+  fi
+  if [[ -n "${TOKEN_STROOM_APP_ID}" ]]; then
+    oidc_curl_opts+=( "--data-urlencode" "resource=${TOKTOKEN_STROOM_APP_ID}" )
+  fi
+
+  # We make the assumption that the call to the IDP uses the same
+  # cert args as the call to datafeed
+  oidc_curl_opts+=( "${curl_security_opts[@]}" )
+  echo_debug "oidc_curl_opts: ${oidc_curl_opts[*]}"
+
+  OIDC_OUTPUT=$( \
+    curl  \
+      -s \
+      "${TOKEN_ENDPOINT}" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      --data-urlencode "grant_type=client_credentials" \
+      "${oidc_curl_opts[@]}" \
+    )
 
   echo_debug "OIDC result: ${BLUE}${OIDC_OUTPUT}${NC}"
 
-  if [[ "${OIDC_OUTPUT}" =~ "access_token" ]]; then
-    ACCESS_TOKEN=$(echo "${OIDC_OUTPUT}" | sed 's/access_token\":\"/¬/' | cut -d ¬ -f 2 | cut -d '"' -f 1)
+  if [[ "${OIDC_OUTPUT}" =~ access_token ]]; then
+    ACCESS_TOKEN=$( \
+      echo "${OIDC_OUTPUT}" \
+        | sed 's/access_token\":\"/¬/' \
+        | cut -d ¬ -f 2 \
+        | cut -d '"' -f 1
+    )
     echo_debug "Received token ${CYAN}${ACCESS_TOKEN}${NC}"
     OIDC_ACCESS_TOKEN="${ACCESS_TOKEN}"
   else
@@ -536,20 +565,20 @@ get_oidc_token_from_idp() {
 }
 
 check_oidc_token_args_present() {
-  if [ "x${TOKEN_ENDPOINT}${TOKEN_CLIENT_APP_ID}${TOKEN_STROOM_APP_ID}${TOKEN_CLIENT_SECRET_FILENAME}" = "x" ]; then
+  if [[ -n "${TOKEN_ENDPOINT}${TOKEN_CLIENT_APP_ID}${TOKEN_STROOM_APP_ID}${TOKEN_CLIENT_SECRET_FILENAME}" ]]; then
     false
-  elif [ "x${TOKEN_ENDPOINT}" = "x" ]; then
-    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+  elif [[ -n "${TOKEN_ENDPOINT}" ]]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless the token-endpoint parameter is set."
     exit 1
-  elif [ "x${TOKEN_CLIENT_APP_ID}" = "x" ]; then
-    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+  elif [[ -n "${TOKEN_CLIENT_APP_ID}" ]]; then
+    echo_error "FATAL: Unable to use OIDC authentation unless the token-client-app-id parameter is set."
     exit 1
-  elif [ "x${TOKEN_STROOM_APP_ID}" = "x" ]; then
-    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
-    exit 1
-  elif [ "x${TOKEN_CLIENT_SECRET_FILENAME}" = "x" ]; then
-    echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
-    exit 1
+  #elif [[ -n "${TOKEN_STROOM_APP_ID}" ]]; then
+    #echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    #exit 1
+  #elif [[ -n "${TOKEN_CLIENT_SECRET_FILENAME}" ]]; then
+    #echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
+    #exit 1
   else
     echo_debug "OIDC token authentication parameters provided."
     true
@@ -629,7 +658,7 @@ send_file() {
   echo_debug "RESPONSE_LINE: [${RESPONSE_LINE}]"
   echo_debug "RESPONSE_CODE: [${RESPONSE_CODE}]"
 
-  if [ "${RESPONSE_CODE}" != "200" ]
+  if [[ "${RESPONSE_CODE}" != "200" ]]
   then
     echo_error "Unable to send file ${BLUE}${file}${NC}, response code" \
       "was: ${RED}${RESPONSE_CODE}${NC}, error was :\n${RESPONSE_MSG}"
@@ -648,7 +677,8 @@ main() {
   # however they use defaul colour for other levels, here we use DEBUG=MAGENTA
   # Padding after INFO/WARN/ERROR consistent with our logback log format
 
-  readonly DATE_PART="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')]"
+  DATE_PART="[$(date +'%Y-%m-%dT%H:%M:%S.%3NZ')]"
+  readonly DATE_PART
   readonly FEED_PART="[${YELLOW}${FEED}${NC}]"
   readonly PID_PART="[${CYAN}${THIS_PID}${NC}]"
   readonly BASE_PREFIX="${DATE_PART} ${FEED_PART} ${PID_PART}"
@@ -657,7 +687,7 @@ main() {
   readonly WARN_PREFIX="${RED}WARN${NC}   ${BASE_PREFIX}"
   readonly ERROR_PREFIX="${BOLD_RED}ERROR${NC}  ${BASE_PREFIX}"
 
-  if [ "${DEBUG}" = "on" ]; then
+  if [[ "${DEBUG}" = "on" ]]; then
     # For debugging all log levels
     echo_debug "This is a debug test"
     echo_info "This is an info test"
