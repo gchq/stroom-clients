@@ -84,6 +84,8 @@ main() {
       "s/SNAPSHOT_VERSION/${script_version}/" \
       "${SCRIPT_DIR}/${output_file}"
   fi
+
+  echo -e "${GREEN}Build complete${NC}"
 }
 
 main "$@"
