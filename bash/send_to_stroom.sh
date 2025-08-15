@@ -52,6 +52,7 @@ source "${DIR}/send_to_stroom_args.sh"
   readonly TOKEN_CLIENT_APP_ID=${_arg_token_client_app_id}
   readonly TOKEN_STROOM_APP_ID=${_arg_token_stroom_app_id}
   readonly TOKEN_CLIENT_SECRET_FILENAME=${_arg_token_client_secret_filename}
+  readonly TOKEN_SCOPES=${_arg_token_scopes:-openid}
   readonly AUTH_GENERATOR=${_arg_auth_generator}
 }
 
@@ -531,6 +532,9 @@ get_oidc_token_from_idp() {
   if [[ -n "${TOKEN_STROOM_APP_ID}" ]]; then
     oidc_curl_opts+=( "--data-urlencode" "resource=${TOKTOKEN_STROOM_APP_ID}" )
   fi
+  if [[ -n "${TOKEN_SCOPES}" ]]; then
+    oidc_curl_opts+=( "--data-urlencode" "scope=${TOKEN_SCOPES}" )
+  fi
 
   # We make the assumption that the call to the IDP uses the same
   # cert args as the call to datafeed
@@ -548,13 +552,25 @@ get_oidc_token_from_idp() {
 
   echo_debug "OIDC result: ${BLUE}${OIDC_OUTPUT}${NC}"
 
+  # The response is JSON and we need to extract the value of the
+  # access_token property. Parsing json with sed/cut is a bit risky
+  # so use jq if available.
   if [[ "${OIDC_OUTPUT}" =~ access_token ]]; then
-    ACCESS_TOKEN=$( \
-      echo "${OIDC_OUTPUT}" \
-        | sed 's/access_token\":\"/¬/' \
-        | cut -d ¬ -f 2 \
-        | cut -d '"' -f 1
-    )
+    if command -v jq >/dev/null 2>&1; then
+      echo_debug "Parsing response with JQ"
+      ACCESS_TOKEN=$( \
+        echo "${OIDC_OUTPUT}" \
+          | jq -r .access_token
+      )
+    else
+      echo_debug "Parsing response with sed/cut"
+      ACCESS_TOKEN=$( \
+        echo "${OIDC_OUTPUT}" \
+          | sed 's/access_token\":\"/¬/' \
+          | cut -d ¬ -f 2 \
+          | cut -d '"' -f 1
+      )
+    fi
     echo_debug "Received token ${CYAN}${ACCESS_TOKEN}${NC}"
     OIDC_ACCESS_TOKEN="${ACCESS_TOKEN}"
   else
@@ -565,20 +581,15 @@ get_oidc_token_from_idp() {
 }
 
 check_oidc_token_args_present() {
-  if [[ -n "${TOKEN_ENDPOINT}${TOKEN_CLIENT_APP_ID}${TOKEN_STROOM_APP_ID}${TOKEN_CLIENT_SECRET_FILENAME}" ]]; then
+  if [[ -z "${TOKEN_ENDPOINT}${TOKEN_CLIENT_APP_ID}" ]]; then
+    echo_debug "No manadatory OIDC arguments provided."
     false
-  elif [[ -n "${TOKEN_ENDPOINT}" ]]; then
+  elif [[ -z "${TOKEN_ENDPOINT}" ]]; then
     echo_error "FATAL: Unable to use OIDC authentation unless the token-endpoint parameter is set."
     exit 1
-  elif [[ -n "${TOKEN_CLIENT_APP_ID}" ]]; then
+  elif [[ -z "${TOKEN_CLIENT_APP_ID}" ]]; then
     echo_error "FATAL: Unable to use OIDC authentation unless the token-client-app-id parameter is set."
     exit 1
-  #elif [[ -n "${TOKEN_STROOM_APP_ID}" ]]; then
-    #echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
-    #exit 1
-  #elif [[ -n "${TOKEN_CLIENT_SECRET_FILENAME}" ]]; then
-    #echo_error "FATAL: Unable to use OIDC authentation unless all 4 token_* parameters are set."
-    #exit 1
   else
     echo_debug "OIDC token authentication parameters provided."
     true
